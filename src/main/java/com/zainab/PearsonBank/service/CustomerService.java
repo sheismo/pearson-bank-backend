@@ -1,8 +1,10 @@
 package com.zainab.PearsonBank.service;
 
-import com.zainab.PearsonBank.dto.AppResponse;
-import com.zainab.PearsonBank.dto.CustomerRequest;
+import com.zainab.PearsonBank.dto.*;
 
 public interface CustomerService {
     AppResponse createAccount(CustomerRequest customerRequest);
+    AppResponse balanceEnquiry(EnquiryRequest request);
+    String nameEnquiry(EnquiryRequest request);
+    AppResponse getAccounts(GetAccountsRequest request);
 }

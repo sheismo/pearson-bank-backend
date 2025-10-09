@@ -1,5 +1,6 @@
 package com.zainab.PearsonBank.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -10,13 +11,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AppResponse<T> {
-    @Schema(name = "Response Code")
-    private String responseCode;
+public class GetAccountsRequest {
+    @Schema(name = "Customer Id")
+    private String customerId;
 
-    @Schema(name = "Response Message")
-    private String responseMessage;
-
-    @Schema(name = "Response Data ")
-    private T data;
+    @JsonIgnore
+    private String senderIp;
 }
