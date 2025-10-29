@@ -10,7 +10,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Data
 @Builder
@@ -19,7 +18,7 @@ import java.util.UUID;
 public class TransferRequest {
     @Schema(name = "Id of Customer Making Request")
     @NotNull(message = "Customer Id is required")
-    private UUID customerId;
+    private String customerId;
 
     @Schema(name = "Credit Account Number")
     @NotNull(message = "Credit account number is required")

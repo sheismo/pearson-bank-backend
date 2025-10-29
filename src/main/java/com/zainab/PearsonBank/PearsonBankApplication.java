@@ -23,10 +23,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
                         email="ajumobizainab@gmail.com",
                         url = "https://github.com/sheismo"
                 ),
-                license = @License(
-                        name = "Pearson Fintech App"
-//                        url = "deployed version url"
-                )
+                license = @License(name = "Pearson Fintech App")
         ),
         externalDocs = @ExternalDocumentation(
                 description = "Pearson Fintech App External Documentation",
@@ -36,8 +33,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 )
 public class PearsonBankApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(PearsonBankApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(PearsonBankApplication.class, args);
+    }
 
 }

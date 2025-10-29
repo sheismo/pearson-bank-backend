@@ -15,7 +15,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AccountInfo {
+public class AccountDetails {
     @Schema(name = "Account Id")
     private UUID accountId;
 

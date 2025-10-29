@@ -88,22 +88,4 @@ public class CustomerController {
                 .build();
         return ResponseEntity.ok(response);
     }
-
-    @Operation(summary = "Get Customer Accounts", description = "API endpoint to get a list of all customer accounts")
-    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PostMapping("/get-accounts")
-    public ResponseEntity<AppResponse<?>> getCustomerAccounts(@RequestBody GetAccountsRequest accountsRequest, HttpServletRequest request) {
-        log.info("Incoming request to get customer accounts name: {} from ip {}", accountsRequest, request.getRemoteAddr());
-
-        if (accountsRequest.getCustomerId() == null || accountsRequest.getCustomerId().isEmpty()) {
-            AppResponse<?> response = AppResponse.builder()
-                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
-                    .responseMessage(AccountResponses.INVALID_REQUEST.getMessage())
-                    .data(null)
-                    .build();
-        }
-
-        AppResponse<?> response = customerService.getAccounts(accountsRequest);
-        return ResponseEntity.ok(response);
-    }
 }

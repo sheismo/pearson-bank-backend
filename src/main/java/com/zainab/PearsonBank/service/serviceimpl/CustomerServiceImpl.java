@@ -8,6 +8,7 @@ import com.zainab.PearsonBank.repository.AccountRepository;
 import com.zainab.PearsonBank.repository.CustomerRepository;
 import com.zainab.PearsonBank.service.CustomerService;
 import com.zainab.PearsonBank.service.EmailService;
+import com.zainab.PearsonBank.service.TransactionService;
 import com.zainab.PearsonBank.types.CurrencyType;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.AccountResponses;
@@ -21,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,6 +31,7 @@ public class CustomerServiceImpl implements CustomerService  {
     private final CustomerRepository customerRepository;
     private final AccountRepository accountRepository;
     private final EmailService emailService;
+    private final TransactionService transactionService;
     private final AccountHelper accountHelper;
 
     @Autowired
@@ -47,7 +48,7 @@ public class CustomerServiceImpl implements CustomerService  {
          * send welcome email to user
          * return appropriate response to user
          */
-        if (accountHelper.checkIfCustomerExists(customerRequest.getEmail())) {
+        if (accountHelper.checkIfCustomerExistsByEmail(customerRequest.getEmail())) {
             log.error("Customer already has an existing account registered to this email provided!");
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_EXISTS.getCode())
@@ -109,7 +110,7 @@ public class CustomerServiceImpl implements CustomerService  {
         return AppResponse.builder()
                 .responseCode(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getCode())
                 .responseMessage(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getMessage())
-                .data(AccountInfo.builder()
+                .data(AccountDetails.builder()
                         .accountName(accountHelper.getCustomerFullName(savedCustomer.getId()))
                         .accountNumber(savedAccount.getAccountNumber())
                         .accountBalance(savedAccount.getAccountBalance())
@@ -128,7 +129,7 @@ public class CustomerServiceImpl implements CustomerService  {
 
         // TODO get logged-in user details
         // check if the customer id passed is same as customer id of the logged-in customer
-        // check if acc/no passed in the request is the same as acc/no of the logged-in customer
+        // check if logged-in customer is owner of account number passed in request
 //        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
 //        boolean isLoggedInCustomerOwnerOfAccount = account.getCustomer().getId().equals(loggedInCustomerId);
 
@@ -151,7 +152,7 @@ public class CustomerServiceImpl implements CustomerService  {
         return AppResponse.builder()
                 .responseCode(AccountResponses.SUCCESS.getCode())
                 .responseMessage(AccountResponses.SUCCESS.getMessage())
-                .data(AccountInfo.builder()
+                .data(AccountDetails.builder()
                         .accountNumber(account.getAccountNumber())
                         .accountBalance(account.getAccountBalance())
                         .accountCurrency(account.getAccountCurrency())
@@ -187,40 +188,4 @@ public class CustomerServiceImpl implements CustomerService  {
         log.info("Returned customer first name is {}:::", customer.getFirstName());
         return accountHelper.getCustomerFullName(customerId);
     }
-
-    @Override
-    public AppResponse<?> getAccounts(GetAccountsRequest request) {
-        log.info("Received request to get customer accounts:::");
-
-        // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
-
-        String customerId = request.getCustomerId();
-        boolean customerExists = accountHelper.checkIfCustomerExists(customerId);
-        if (!customerExists) {
-            log.error("Customer does not exist:::");
-            return AppResponse.builder()
-                    .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
-                    .responseMessage(AccountResponses.CUSTOMER_NOT_FOUND.getMessage())
-                    .data(null)
-                    .build();
-        }
-
-        List<Account> accounts = accountRepository.findByCustomerId(UUID.fromString(customerId));
-        if (accounts == null || accounts.isEmpty()) {
-            return AppResponse.builder()
-                    .responseCode(AccountResponses.ACCOUNT_NOT_FOUND.getCode())
-                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage() + " for tis customer")
-                    .data(null)
-                    .build();
-        }
-
-        return AppResponse.builder()
-                .responseCode(AccountResponses.SUCCESS.getCode())
-                .responseMessage(AccountResponses.SUCCESS.getMessage())
-                .data(accounts)
-                .build();
-    }
-
 }

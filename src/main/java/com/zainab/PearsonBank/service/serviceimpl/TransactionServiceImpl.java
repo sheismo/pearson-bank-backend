@@ -25,8 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -140,7 +143,7 @@ public class TransactionServiceImpl implements TransactionService {
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_CREDIT_SUCCESS.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_CREDIT_SUCCESS.getMessage())
-                    .data(AccountInfo.builder()
+                    .data(AccountDetails.builder()
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -160,7 +163,7 @@ public class TransactionServiceImpl implements TransactionService {
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_CREDIT_FAILED.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_CREDIT_FAILED.getMessage())
-                    .data(AccountInfo.builder()
+                    .data(AccountDetails.builder()
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -223,7 +226,7 @@ public class TransactionServiceImpl implements TransactionService {
             return AppResponse.builder()
                     .responseCode(AccountResponses.INSUFFICIENT_FUNDS.getCode())
                     .responseMessage(AccountResponses.INSUFFICIENT_FUNDS.getMessage())
-                    .data(AccountInfo.builder()
+                    .data(AccountDetails.builder()
                             .accountNumber(account.getAccountNumber())
                             .accountName(accountHelper.getCustomerFullName(customer))
                             .accountBalance(account.getAccountBalance())
@@ -284,7 +287,7 @@ public class TransactionServiceImpl implements TransactionService {
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_DEBIT_SUCCESS.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_DEBIT_SUCCESS.getMessage())
-                    .data(AccountInfo.builder()
+                    .data(AccountDetails.builder()
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -304,7 +307,7 @@ public class TransactionServiceImpl implements TransactionService {
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_DEBIT_FAILED.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_DEBIT_FAILED.getMessage())
-                    .data(AccountInfo.builder()
+                    .data(AccountDetails.builder()
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -324,7 +327,7 @@ public class TransactionServiceImpl implements TransactionService {
         String drAccountNo = transferRequest.getDrAccountNumber();
         String crAccountNo = transferRequest.getCrAccountNumber();
         BigDecimal transferAmount = transferRequest.getAmount();
-        UUID customerId = transferRequest.getCustomerId();
+        UUID customerId = UUID.fromString(transferRequest.getCustomerId());
         String channel = transferRequest.getChannel() != null ? transferRequest.getChannel() : "web";
         String ip = transferRequest.getSenderIp();
 
@@ -496,5 +499,38 @@ public class TransactionServiceImpl implements TransactionService {
                             .build())
                     .build();
         }
+    }
+
+    @Override
+    public Transaction getSingleTransaction(String customerId, String accountNumber, String transactionId) {
+        log.info("Received request to get single transaction for customer with id {} and account {}",
+                customerId, accountNumber);
+
+        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+
+        return transactionRepository.findByTransactionId(UUID.fromString(transactionId));
+    }
+
+    @Override
+    public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber) {
+        log.info("Received request to get all transactions for customer with id {} and account {}:::",
+                customerId, accountNumber);
+
+        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+
+        return transactionRepository.findAllByInitiator(UUID.fromString(customerId));
+    }
+
+    @Override
+    public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber, String startDate, String endDate) {
+        log.info("Received request to get transactions for customer with id {} and account {} from {} to {}:::",
+                customerId, accountNumber, startDate, endDate);
+
+        LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
+        LocalDateTime end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
+
+        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+
+        return transactionRepository.findAllByInitiatorWithinRange(UUID.fromString(customerId), start, end);
     }
 }

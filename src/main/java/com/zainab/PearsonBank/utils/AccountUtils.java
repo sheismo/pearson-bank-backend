@@ -2,6 +2,8 @@ package com.zainab.PearsonBank.utils;
 
 import com.zainab.PearsonBank.dto.CustomerRequest;
 import com.zainab.PearsonBank.dto.EnquiryRequest;
+import com.zainab.PearsonBank.dto.GetTransactionRequest;
+import com.zainab.PearsonBank.dto.TransferRequest;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -28,6 +30,28 @@ public class AccountUtils {
 
         boolean hasEmpty = Stream.of(fields).anyMatch(AccountUtils::isEmpty);
         log.info("Enquiry Request has empty field?: {}", hasEmpty);
+
+        return !hasEmpty;
+    }
+
+    public static boolean validateGetTransactionRequest(GetTransactionRequest request) {
+        Object[] fields = {
+                request.getAccountId(), request.getCustomerId(), request.getChannel()
+        };
+
+        boolean hasEmpty = Stream.of(fields).anyMatch(AccountUtils::isEmpty);
+        log.info("Get Transaction Request has empty field?: {}", hasEmpty);
+
+        return !hasEmpty;
+    }
+
+    public static boolean validateTransferRequest(TransferRequest request) {
+        Object[] fields = {
+                request.getCrAccountNumber(), request.getDrAccountNumber(),  request.getCustomerId(), request.getChannel()
+        };
+
+        boolean hasEmpty = Stream.of(fields).anyMatch(AccountUtils::isEmpty);
+        log.info("Transfer Request has empty field?: {}", hasEmpty);
 
         return !hasEmpty;
     }
