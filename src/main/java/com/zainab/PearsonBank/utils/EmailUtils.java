@@ -176,6 +176,40 @@ public enum EmailUtils {
               </body>
             </html>
            \s"""
+    ),
+    ACCOUNT_DELETION_ALERT_SUBJECT("Account Deletion Confirmation"),
+
+    ACCOUNT_DELETION_ALERT_BODY(
+            """
+            <html>
+              <body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; color: #333;">
+                <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                 
+                  <h2 style="color: #e76f51; margin-bottom: 20px;">Account Deletion Confirmation</h2>
+                 
+                  <p style="font-size: 14px;">Dear %s,</p>
+                  <p style="font-size: 14px;">
+                    This is to confirm that your account with us has been successfully deleted on <strong>%s</strong>.
+                  </p>
+                  
+                  <p style="font-size: 14px;">
+                    All associated data and personal information have been permanently removed in accordance with our data retention policy. 
+                    If this action was not initiated by you, please contact our support team immediately.
+                  </p>
+                 
+                  <div style="margin-top: 20px; background-color: #fef4f4; padding: 15px; border-radius: 6px;">
+                    <p style="font-size: 13px; margin: 0;">
+                      <strong>Need help?</strong> Reach out to our support team at 
+                      <a href="mailto:support@pbank.com" style="color: #2a9d8f; text-decoration: none;">support@yourapp.com</a>.
+                    </p>
+                  </div>
+                 
+                  <p style="font-size: 14px; margin-top: 20px;">Thank you for being part of our community.</p>
+                  <p style="font-size: 14px; margin-top: 10px;">– The YourApp Team</p>
+                </div>
+              </body>
+            </html>
+            """
     );
 
     private final String template;

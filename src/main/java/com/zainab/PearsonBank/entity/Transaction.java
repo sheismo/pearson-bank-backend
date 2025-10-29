@@ -14,17 +14,19 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity(name = "transactions")
+@Entity
+@Table(name = "transactions")
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "transaction_id")
     private UUID transactionId;
+
+    private String amount;
     private String drAccountName;
     private String drAccountNumber;
     private String crAccountName;
     private String crAccountNumber;
-    private String amount;
     private TransactionType type;
     private String referenceNo; // this is the tracking id
     private String channel;

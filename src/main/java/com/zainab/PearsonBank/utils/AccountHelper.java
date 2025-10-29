@@ -1,5 +1,7 @@
 package com.zainab.PearsonBank.utils;
 
+import com.zainab.PearsonBank.dto.AccountDetails;
+import com.zainab.PearsonBank.dto.CustomerDetails;
 import com.zainab.PearsonBank.entity.Account;
 import com.zainab.PearsonBank.entity.Customer;
 import com.zainab.PearsonBank.repository.AccountRepository;
@@ -89,12 +91,66 @@ public class AccountHelper {
         return null;
     }
 
-    public boolean checkIfCustomerExists(String customerEmail) {
+    public AccountDetails fetchAccountDetails(String accountId) {
+        Account account = accountRepository.findById(UUID.fromString(accountId))
+                .orElseThrow(RuntimeException::new);
+
+        if (account == null) return null;
+
+        return AccountDetails.builder()
+                .accountId(account.getId())
+                .ownerId(account.getCustomer().getId())
+                .accountNumber(account.getAccountNumber())
+                .accountName(getCustomerFullName(account.getCustomer()))
+                .accountBalance(account.getAccountBalance())
+                .accountCurrency(account.getAccountCurrency())
+                .accountStatus(account.getAccountStatus())
+                .linkedEmail(account.getCustomer().getEmail())
+                .linkedPhone(account.getCustomer().getPhoneNumber())
+                .build();
+    }
+
+    public CustomerDetails fetchCustomerDetails(String customerId) {
+        Customer customer =  customerRepository.findById(UUID.fromString(customerId))
+                .orElseThrow(RuntimeException::new);
+
+        if (customer == null) return null;
+
+        return CustomerDetails.builder()
+                .id(customer.getId())
+                .fullName(getCustomerFullName(customer))
+                .email(customer.getEmail())
+                .gender(customer.getGender())
+                .address(customer.getAddress())
+                .phoneNumber(customer.getPhoneNumber())
+                .state(customer.getState())
+                .country(customer.getCountry())
+                .noOfAccounts(customer.getNoOfAccounts())
+                .totalBalance(customer.getTotalBalance())
+                .build();
+    }
+
+    public boolean checkIfCustomerExistsByEmail(String customerEmail) {
         return customerRepository.existsByEmail(customerEmail);
+    }
+
+    public boolean checkIfCustomerExistsById(String customerId) {
+        return customerRepository.existsById(UUID.fromString(customerId));
     }
 
     public boolean checkIfAccountExists(String accountNumber) {
         return accountRepository.existsByAccountNumber(accountNumber);
+    }
+
+    public boolean checkIfAccountExistsById(String accountId) {
+        return accountRepository.existsById(UUID.fromString(accountId));
+    }
+
+    public boolean checkIfAccountBelongsToCustomer(String customerId, String accountNumber) {
+        Account account = accountRepository.findByAccountNumber(accountNumber);
+        if (account == null) return false;
+
+        return account.getCustomer().getId().equals(UUID.fromString(customerId));
     }
 
     public boolean checkIfAccountIsActive(String accountNumber) {

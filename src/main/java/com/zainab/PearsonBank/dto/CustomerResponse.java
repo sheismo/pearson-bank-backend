@@ -25,5 +25,5 @@ public class CustomerResponse {
     private String alternativePhoneNumber;
 
     @Schema(name = "Accounts")
-    private List<AccountInfo> accounts;
+    private List<AccountDetails> accounts;
 }
