@@ -177,8 +177,8 @@ public enum EmailUtils {
             </html>
            \s"""
     ),
-    ACCOUNT_DELETION_ALERT_SUBJECT("Account Deletion Confirmation"),
 
+    ACCOUNT_DELETION_ALERT_SUBJECT("Account Deletion Confirmation"),
     ACCOUNT_DELETION_ALERT_BODY(
             """
             <html>
@@ -210,7 +210,45 @@ public enum EmailUtils {
               </body>
             </html>
             """
-    );
+    ),
+
+    OTP_VERIFICATION_EMAIL_SUBJECT("Your Pearson Bank OTP Code"),
+    OTP_VERIFICATION_EMAIL_BODY(
+            """
+            <html>
+              <body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; color: #333;">
+                <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                 \s
+                  <h2 style="color: #2a9d8f; margin-bottom: 20px;">Pearson Bank OTP Verification</h2>
+                 \s
+                  <p style="font-size: 14px;">Dear %s,</p>
+                 \s
+                  <p style="font-size: 14px;">
+                    To verify your email address and proceed with account creation,
+                     please use the One-Time Password (OTP) below.
+                  </p>
+                 \s
+                  <div style="text-align: center; margin: 30px 0;">
+                    <span style="font-size: 24px; letter-spacing: 4px; font-weight: bold; color: #264653;">%s</span>
+                  </div>
+                 \s
+                  <p style="font-size: 14px;">
+                    This OTP is valid for <strong>10 minutes</strong>. Do not share it with anyone for security reasons.
+                  </p>
+                 \s
+                  <p style="font-size: 14px; margin-top: 20px;">
+                    Thank you for banking with <strong>Pearson Bank</strong>.
+                  </p>
+                 \s
+                  <p style="font-size: 12px; color: #888; margin-top: 30px;">
+                    If you did not request this OTP, please contact our support team immediately.
+                  </p>
+                </div>
+              </body>
+            </html>
+            \s"""
+    )
+    ;
 
     private final String template;
 

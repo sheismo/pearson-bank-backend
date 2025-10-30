@@ -1,9 +1,6 @@
 package com.zainab.PearsonBank.controller;
 
-import com.zainab.PearsonBank.dto.AppResponse;
-import com.zainab.PearsonBank.dto.CreditDebitRequest;
-import com.zainab.PearsonBank.dto.GetTransactionRequest;
-import com.zainab.PearsonBank.dto.TransferRequest;
+import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.entity.Transaction;
 import com.zainab.PearsonBank.service.TransactionService;
 import com.zainab.PearsonBank.utils.AccountHelper;
