@@ -66,16 +66,20 @@ public class AccountHelper {
         return null;
     }
 
+    public String generateOTP() {
+        return String.format("%06d", new Random().nextInt(999999));
+    }
+
     public String generateReference(UUID transactionId, UUID userId) {
-        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd")); // Get date in YYMMDD format
+        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
 
         String transactionStr = transactionId.toString().replace("-", "");
-        String last4Transaction = transactionStr.substring(transactionStr.length() - 4); // Get Last 4 chars of transactionId
+        String last4Transaction = transactionStr.substring(transactionStr.length() - 4);
 
         String userStr = userId.toString().replace("-", "");
-        String last4User = userStr.substring(userStr.length() - 4); // Get Last 4 chars of userId
+        String last4User = userStr.substring(userStr.length() - 4);
 
-        String randomDigits = String.format("%02d", new Random().nextInt(100)); // Get 2 random digits
+        String randomDigits = String.format("%02d", new Random().nextInt(100));
 
         return date + last4Transaction + last4User + randomDigits;
     }
@@ -161,8 +165,5 @@ public class AccountHelper {
     public boolean checkIfAmountIsValid(BigDecimal amount) {
         return amount.compareTo(BigDecimal.ZERO) > 0;
     }
-
-
-
 
 }

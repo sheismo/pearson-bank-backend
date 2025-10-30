@@ -6,6 +6,7 @@ import com.zainab.PearsonBank.entity.Customer;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.AccountRepository;
 import com.zainab.PearsonBank.repository.CustomerRepository;
+import com.zainab.PearsonBank.service.CredentialService;
 import com.zainab.PearsonBank.service.CustomerService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -32,22 +34,24 @@ public class CustomerServiceImpl implements CustomerService  {
     private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final TransactionService transactionService;
+    private final CredentialService credentialService;
     private final AccountHelper accountHelper;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    /**
+     * To onboard a new customer:
+     * check if user has an existing account
+     * save user details and do email verification
+     * verify email and generate unique account no
+     * send welcome mail to user email address
+     */
+
     @Transactional
     @Override
-    public AppResponse<?> createAccount(CustomerRequest customerRequest) {
-        log.info("Received request to open new customer account");
-        /**
-         * check if user has an existing account
-         * generate a unique account number
-         * create a new customer account - save details to db
-         * send welcome email to user
-         * return appropriate response to user
-         */
+    public AppResponse<?> onboardNewCustomer(CustomerRequest customerRequest) {
+        log.info("Received request to onboard new customer:::::");
         if (accountHelper.checkIfCustomerExistsByEmail(customerRequest.getEmail())) {
             log.error("Customer already has an existing account registered to this email provided!");
             return AppResponse.builder()
@@ -57,70 +61,112 @@ public class CustomerServiceImpl implements CustomerService  {
                     .build();
         }
 
+        try {
+            // save customer
+            Customer newCustomer = Customer.builder()
+                    .firstName(customerRequest.getFirstName())
+                    .lastName(customerRequest.getLastName())
+                    .otherName(customerRequest.getOtherName())
+                    .gender(customerRequest.getGender())
+                    .address(customerRequest.getAddress())
+                    .country(customerRequest.getCountry())
+                    .state(customerRequest.getState())
+                    .email(customerRequest.getEmail())
+                    .phoneNumber(customerRequest.getPhoneNumber())
+                    .alternativePhoneNumber(customerRequest.getAlternativePhoneNumber())
+                    .noOfAccounts(0)
+                    .totalBalance(BigDecimal.ZERO)
+                    .emailVerified(false)
+                    .isUserLocked(true)
+                    .build();
+            Customer savedCustomer = customerRepository.save(newCustomer);
+            log.info("New onboarded customer name is {}:::", savedCustomer.getFirstName());
+
+            credentialService.sendOtp(savedCustomer.getEmail());
+            log.info("OTP for email verification sent to customer email - {}:::", savedCustomer.getEmail());
+
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.SUCCESS.getCode())
+                    .responseMessage(AccountResponses.SUCCESS.getMessage())
+                    .data("An OTP has been sent to the provided email address!")
+                    .build();
+        } catch(Exception e) {
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage(AccountResponses.FAILED.getMessage())
+                    .data("An error occurred!")
+                    .build();
+        }
+    }
+
+    @Override
+    public AppResponse<?> verifyCustomerEmail(String emailAddress, String otp) {
+        boolean isVerified = credentialService.verifyOtp(emailAddress, otp);
+        if (isVerified) {
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.SUCCESS.getCode())
+                    .responseMessage(AccountResponses.SUCCESS.getMessage())
+                    .data("Otp verified successfully!")
+                    .build();
+        }
+        return AppResponse.builder()
+                .responseCode(AccountResponses.FAILED.getCode())
+                .responseMessage(AccountResponses.FAILED.getMessage())
+                .data("Incorrect Otp!")
+                .build();
+    }
+
+    @Override
+    public AppResponse<?> createAccountForCustomer(String emailAddress) {
+        Optional<Customer> oCustomer = customerRepository.findByEmail(emailAddress);
+        if (oCustomer.isEmpty()) {
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
+                    .responseMessage(AccountResponses.CUSTOMER_NOT_FOUND.getMessage())
+                    .data(null)
+                    .build();
+        }
+        Customer customer = oCustomer.get();
+
+        if (!customer.isEmailVerified()) {
+            log.info("Customer Email Verified: {}", customer.isEmailVerified());
+
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage(AccountResponses.INVALID_REQUEST.getMessage())
+                    .data("Email Address is not verified!")
+                    .build();
+        }
+
         String accountNumber = accountHelper.generateUniqueAccountNumber(5);
         if (accountNumber == null) {
             log.error("Unable to generate account number for new customer:::");
             return AppResponse.builder()
-                    .responseCode(AccountResponses.ACCOUNT_CREATION_FAILED.getCode())
-                    .responseMessage(AccountResponses.ACCOUNT_CREATION_FAILED.getMessage())
-                    .data(null)
-                    .build();
+                .responseCode(AccountResponses.ACCOUNT_CREATION_FAILED.getCode())
+                .responseMessage(AccountResponses.ACCOUNT_CREATION_FAILED.getMessage())
+                .data(null)
+                .build();
         }
 
-        // save customer
-        Customer newCustomer = Customer.builder()
-                .firstName(customerRequest.getFirstName())
-                .lastName(customerRequest.getLastName())
-                .otherName(customerRequest.getOtherName())
-                .gender(customerRequest.getGender())
-                .address(customerRequest.getAddress())
-                .country(customerRequest.getCountry())
-                .state(customerRequest.getState())
-                .email(customerRequest.getEmail())
-                .phoneNumber(customerRequest.getPhoneNumber())
-                .alternativePhoneNumber(customerRequest.getAlternativePhoneNumber())
-                .noOfAccounts(1)
-                .totalBalance(BigDecimal.ZERO)
-                .build();
-        Customer savedCustomer = customerRepository.save(newCustomer);
-
-        // save account
         Account newAccount = Account.builder()
                 .accountNumber(accountNumber)
                 .accountBalance(BigDecimal.ZERO)
                 .accountCurrency(CurrencyType.NGN)
                 .accountStatus("ACTIVE")
-                .customer(savedCustomer)
+                .customer(customer)
                 .build();
         Account savedAccount = accountRepository.save(newAccount);
-
-        log.info("New onboarded customer name is {}, account number is {}:::", savedCustomer.getFirstName(), savedAccount.getAccountNumber());
 
         // send email to customer
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setSubject(EmailUtils.NEW_CUSTOMER_EMAIL_SUBJECT.getTemplate());
         emailDetails.setBody(EmailUtils.NEW_CUSTOMER_EMAIL_BODY
-                .format(savedCustomer.getFirstName() + " " + savedCustomer.getLastName(), savedAccount.getAccountNumber()));
-        emailDetails.setRecipient(savedCustomer.getEmail());
-        eventPublisher.publishEvent(
-                new EmailEvent(emailDetails)
-        );
-        log.info("Onboarding mail sent to customer email - {}:::", savedCustomer.getEmail());
+                                     .format(customer.getFirstName() + " " + customer.getLastName(), savedAccount.getAccountNumber()));
+        emailDetails.setRecipient(customer.getEmail());
+        eventPublisher.publishEvent(new EmailEvent(emailDetails));
 
-        return AppResponse.builder()
-                .responseCode(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getCode())
-                .responseMessage(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getMessage())
-                .data(AccountDetails.builder()
-                        .accountName(accountHelper.getCustomerFullName(savedCustomer.getId()))
-                        .accountNumber(savedAccount.getAccountNumber())
-                        .accountBalance(savedAccount.getAccountBalance())
-                        .accountCurrency(savedAccount.getAccountCurrency())
-                        .accountStatus(savedAccount.getAccountStatus())
-                        .linkedEmail(savedCustomer.getEmail())
-                        .linkedPhone(savedCustomer.getPhoneNumber())
-                        .build()
-                )
-                .build();
+        log.info("Onboarding mail sent to customer email - {}:::", customer.getEmail());
+        return null;
     }
 
     @Override

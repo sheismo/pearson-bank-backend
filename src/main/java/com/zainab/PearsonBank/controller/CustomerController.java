@@ -1,6 +1,8 @@
 package com.zainab.PearsonBank.controller;
 
-import com.zainab.PearsonBank.dto.*;
+import com.zainab.PearsonBank.dto.AppResponse;
+import com.zainab.PearsonBank.dto.CustomerRequest;
+import com.zainab.PearsonBank.dto.EnquiryRequest;
 import com.zainab.PearsonBank.service.CustomerService;
 import com.zainab.PearsonBank.utils.AccountResponses;
 import com.zainab.PearsonBank.utils.AccountUtils;
@@ -16,32 +18,65 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/customer")
 @Slf4j
-@Tag(name = "User Management APIs")
+@Tag(name = "Credentials Management APIs")
 public class CustomerController {
     @Autowired
     CustomerService customerService;
 
     /**
-     * @return AppResponse containing info about newly created account or errors if any
+     * @return AppResponse containing info about the api operation
      */
-    @Operation(
-            summary = "Create new user account", description = "API endpoint to create new account for a new user/customer"
-    )
-    @ApiResponse(
-            responseCode = "200", description = "Request processed successfully!"
-    )
-    @PostMapping("/open-account")
-    public ResponseEntity<AppResponse<?>> createAccount(@RequestBody CustomerRequest customerRequest, HttpServletRequest request) {
+    @Operation(summary = "Onboard New Customer", description = "API endpoint to create new account for a new user/customer")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PostMapping("/onboard")
+    // return, frontend moves to set up app password, after success save return ok response, frontend redirects to sign in
+    // first time login pops up set transaction pin (if last login date s null)
+    public ResponseEntity<AppResponse<?>> onboardCustomer(@RequestBody CustomerRequest customerRequest, HttpServletRequest request) {
         log.info("Incoming request to create new customer account: {} from ip {}", customerRequest, request.getRemoteAddr());
 
         if (!AccountUtils.validateCustomerRequest(customerRequest)) {
+            log.error("Invalid Request::::::");
+            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null));
+        }
+        AppResponse<?> response = customerService.onboardNewCustomer(customerRequest);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Verify Customer Email", description = "API endpoint to verify customer email ")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PostMapping("/verify-email")
+    public ResponseEntity<AppResponse<?>> verifyCustomerEmail(Map<String, String> verifyEmailRequest, HttpServletRequest request) {
+        log.info("Incoming request to verify email for new customer from ip {}", request.getRemoteAddr());
+
+        String emailAddress = verifyEmailRequest.get("email");
+        String otp = verifyEmailRequest.get("otp");
+
+        if (emailAddress == null || emailAddress.isEmpty() || otp == null || otp.isEmpty() ) {
+            log.error("Invalid Request::");
+            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Otp is incorrect!"));
+        }
+
+        AppResponse<?> response = customerService.verifyCustomerEmail(emailAddress, otp);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Create Account", description = "API endpoint to create account for customer")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PostMapping("/create-account")
+    public ResponseEntity<AppResponse<?>> createCustomer(String emailAddress, HttpServletRequest request) {
+        log.info("Incoming request to create new customer account from ip {}", request.getRemoteAddr());
+
+        if (emailAddress == null || emailAddress.isEmpty() ) {
             log.error("Invalid Request:::");
             return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null));
         }
-        AppResponse<?> response = customerService.createAccount(customerRequest);
+
+        AppResponse<?> response = customerService.createAccountForCustomer(emailAddress);
         return ResponseEntity.ok(response);
     }
 

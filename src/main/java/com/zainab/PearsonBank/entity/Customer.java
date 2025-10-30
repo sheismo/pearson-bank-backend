@@ -37,6 +37,12 @@ public class Customer {
     private int noOfAccounts;
     private BigDecimal totalBalance;
 
+    private String transactionPin;
+    private String appPassword;
+    private boolean emailVerified;
+    private boolean isUserLocked;
+    private LocalDateTime lastLoginDate;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

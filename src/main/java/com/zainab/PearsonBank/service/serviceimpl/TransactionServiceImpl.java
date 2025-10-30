@@ -417,7 +417,7 @@ public class TransactionServiceImpl implements TransactionService {
         String txnReference = accountHelper.generateReference(savedTxn.getTransactionId(), sender.getId());
 
         try {
-            // debit sender and send transaction email
+            // debit sender and credit beneficary
             BigDecimal newSenderBalance = senderAcc.getAccountBalance().subtract(transferAmount);
             BigDecimal newSenderTotalBalance = sender.getTotalBalance().subtract(transferAmount);
 
@@ -426,6 +426,15 @@ public class TransactionServiceImpl implements TransactionService {
             accountRepository.save(senderAcc);
             customerRepository.save(sender);
 
+            BigDecimal newBeneficiaryBalance = beneficiaryAcc.getAccountBalance().add(transferAmount);
+            BigDecimal newBeneficiaryTotalBalance = beneficiary.getTotalBalance().add(transferAmount);
+
+            beneficiaryAcc.setAccountBalance(newBeneficiaryBalance);
+            beneficiary.setTotalBalance(newBeneficiaryTotalBalance);
+            accountRepository.save(beneficiaryAcc);
+            customerRepository.save(beneficiary);
+
+            // send transaction emails
             String formattedDate = transactionDate.format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm:ss"));
 
             EmailDetails debitEmail = new EmailDetails();
@@ -437,15 +446,6 @@ public class TransactionServiceImpl implements TransactionService {
             eventPublisher.publishEvent(
                     new EmailEvent(debitEmail)
             );
-
-            // credit beneficiary and send transaction email
-            BigDecimal newBeneficiaryBalance = beneficiaryAcc.getAccountBalance().add(transferAmount);
-            BigDecimal newBeneficiaryTotalBalance = beneficiary.getTotalBalance().add(transferAmount);
-
-            beneficiaryAcc.setAccountBalance(newBeneficiaryBalance);
-            beneficiary.setTotalBalance(newBeneficiaryTotalBalance);
-            accountRepository.save(beneficiaryAcc);
-            customerRepository.save(beneficiary);
 
             EmailDetails creditEmail = new EmailDetails();
             creditEmail.setSubject(EmailUtils.NEW_TRANSACTION_CREDIT_ALERT_SUBJECT.getTemplate());

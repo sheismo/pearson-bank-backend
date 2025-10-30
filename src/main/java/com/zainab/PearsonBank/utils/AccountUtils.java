@@ -70,7 +70,10 @@ public class AccountUtils {
         if (accountNumber == null || accountNumber.length() < 4) {
             return "****";
         }
-        return "****" + accountNumber.substring(accountNumber.length() - 4);
+
+        String toShow = accountNumber.substring(accountNumber.length() - 4);
+        String toHide = "*".repeat(accountNumber.length() - toShow.length());
+        return toHide + toShow;
     }
 
     public static boolean hasSufficientBalance(BigDecimal balance, BigDecimal amount) {
