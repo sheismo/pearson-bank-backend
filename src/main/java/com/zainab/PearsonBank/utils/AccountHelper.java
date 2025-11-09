@@ -177,6 +177,14 @@ public class AccountHelper {
         return customer.isUserLocked();
     }
 
+    public boolean isFirstTimeLogin(String customerId) {
+        Customer customer =  customerRepository.findById(UUID.fromString(customerId))
+                .orElseThrow(RuntimeException::new);
+
+        if (customer == null) return false;
+        return customer.getAppPassword() == null || customer.getTransactionPin() == null;
+    }
+
     public boolean checkIfAccountIsActive(String accountNumber) {
         Account account = accountRepository.findByAccountNumber(accountNumber);
         return account.getAccountStatus().equalsIgnoreCase("Active"); //returns true if account is active

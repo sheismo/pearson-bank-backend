@@ -6,7 +6,7 @@ import com.zainab.PearsonBank.entity.Customer;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.AccountRepository;
 import com.zainab.PearsonBank.repository.CustomerRepository;
-import com.zainab.PearsonBank.service.CredentialService;
+import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.service.CustomerService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
@@ -35,7 +35,7 @@ public class CustomerServiceImpl implements CustomerService  {
     private final AccountRepository accountRepository;
     private final EmailService emailService;
     private final TransactionService transactionService;
-    private final CredentialService credentialService;
+    private final AuthService credentialService;
     private final AccountHelper accountHelper;
 
     @Autowired

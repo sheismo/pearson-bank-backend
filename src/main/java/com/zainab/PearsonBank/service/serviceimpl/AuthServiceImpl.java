@@ -6,7 +6,7 @@ import com.zainab.PearsonBank.entity.EmailOtp;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.CustomerRepository;
 import com.zainab.PearsonBank.repository.EmailOtpRepository;
-import com.zainab.PearsonBank.service.CredentialService;
+import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.EmailUtils;
@@ -25,7 +25,7 @@ import java.util.UUID;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class CredentialServiceImpl implements CredentialService {
+public class AuthServiceImpl implements AuthService {
     private final EmailOtpRepository otpRepository;
     private final CustomerRepository customerRepository;
     private final EmailService emailService;
@@ -41,7 +41,7 @@ public class CredentialServiceImpl implements CredentialService {
     @Value("${app.supportMail}")
     private String appSupportMail;
 
-    // Generate and send OTP
+    @Override
     public void sendEmailOtp(String name, String email, String type) {
         otpRepository.findByEmail(email)
                 .ifPresent(otpRepository::delete);
@@ -80,7 +80,7 @@ public class CredentialServiceImpl implements CredentialService {
         }
     }
 
-    // Verify OTP
+    @Override
     public boolean verifyEmailOtp(String email, String otp) {
         log.info("OTP to be verified is {} ", otp);
         Optional<EmailOtp> validOtp = otpRepository.findTopByEmailAndOtpAndUsedFalseOrderByExpiryTimeDesc(email, otp);
@@ -97,17 +97,68 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     @Override
+    public String setAppPassword(String customerId, String password) {
+        Optional<Customer> oCustomer = customerRepository.findById(UUID.fromString(customerId));
+        if (oCustomer.isEmpty()) return "Customer Not Found";
+
+        Customer customer = oCustomer.get();
+        String hashedPassword = passwordEncoder.encode(password);
+        if(customer.getAppPassword() != null && customer.getAppPassword().equals(hashedPassword)) return "You cannot use your old password";
+
+        customer.setTransactionPin(hashedPassword);
+        customerRepository.save(customer);
+        return "Password set successfully!";
+    }
+
+    @Override
+    public String changeAppPassword(String customerId, String oldPassword, String newPassword) {
+        if (oldPassword.equals(newPassword)) {
+            return "Failed: Old Password cannot be the same as New Password";
+        }
+
+        if (confirmAppPassword(customerId, oldPassword)) { //&& accountHelper.canUsePassword(customerId, newPassword)
+            // save to cred history table
+            return setAppPassword(customerId, newPassword);
+        }
+
+        return "Failed!";
+    }
+
+    @Override
+    public boolean confirmAppPassword(String customerId, String password) {
+        Optional<Customer> oCustomer = customerRepository.findById(UUID.fromString(customerId));
+        if (oCustomer.isEmpty()) return false;
+
+        Customer customer = oCustomer.get();
+        return passwordEncoder.matches(password, customer.getTransactionPin());
+    }
+
+    @Override
     public String setTransactionPin(String customerId, String transactionPin) {
         Optional<Customer> oCustomer = customerRepository.findById(UUID.fromString(customerId));
-        if (oCustomer.isEmpty()) return "1";
+        if (oCustomer.isEmpty()) return "Customer Not Found";
 
         Customer customer = oCustomer.get();
         String hashedPin = passwordEncoder.encode(transactionPin);
-        if(customer.getTransactionPin() != null && customer.getTransactionPin().equals(hashedPin)) return "2";
+        if(customer.getTransactionPin() != null && customer.getTransactionPin().equals(hashedPin)) return "You cannot use your old pin";
 
         customer.setTransactionPin(hashedPin);
         customerRepository.save(customer);
-        return "3";
+        return "Pin set successfully!";
+    }
+
+    @Override
+    public String changeTransactionPin(String customerId, String oldTransactionPin, String newTransactionPin) {
+        if (oldTransactionPin.equals(newTransactionPin)) {
+            return "Failed: Old Pin cannot be the same as New Pin";
+        }
+
+        if (confirmTransactionPin(customerId, oldTransactionPin)) { // && accountHelper.canUsePin(customerId, newTransactionPin)
+            // save to cred history table
+            return setAppPassword(customerId, newTransactionPin);
+        }
+
+        return "Failed!";
     }
 
     @Override
@@ -118,4 +169,5 @@ public class CredentialServiceImpl implements CredentialService {
         Customer customer = oCustomer.get();
         return passwordEncoder.matches(transactionPin, customer.getTransactionPin());
     }
+
 }
