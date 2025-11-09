@@ -1,6 +1,5 @@
 package com.zainab.PearsonBank.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +16,4 @@ public class GetAccountsRequest {
 
     @Schema(name = "Channel")
     private String channel;
-
-    @JsonIgnore
-    private String senderIp;
 }

@@ -18,6 +18,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +41,12 @@ public class CustomerServiceImpl implements CustomerService  {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Value("${app.name}")
+    private String appName;
+
+    @Value("${app.supportMail}")
+    private String appSupportMail;
+
     /**
      * To onboard a new customer:
      * check if user has an existing account
@@ -53,56 +60,63 @@ public class CustomerServiceImpl implements CustomerService  {
     public AppResponse<?> onboardNewCustomer(CustomerRequest customerRequest) {
         log.info("Received request to onboard new customer:::::");
         if (accountHelper.checkIfCustomerExistsByEmail(customerRequest.getEmail())) {
-            log.error("Customer already has an existing account registered to this email provided!");
-            return AppResponse.builder()
-                    .responseCode(AccountResponses.ACCOUNT_EXISTS.getCode())
-                    .responseMessage(AccountResponses.ACCOUNT_EXISTS.getMessage())
-                    .data(null)
-                    .build();
+            if (accountHelper.checkIfCustomerIsVerified(customerRequest.getEmail())) {
+                log.error("Customer already has an existing account registered to this email provided!");
+                return AppResponse.builder()
+                        .responseCode(AccountResponses.ACCOUNT_EXISTS.getCode())
+                        .responseMessage(AccountResponses.ACCOUNT_EXISTS.getMessage())
+                        .data(null)
+                        .build();
+            } else {
+                log.error("Customer has already been onboarded, but email has not been verified!");
+                return AppResponse.builder()
+                        .responseCode(AccountResponses.ACCOUNT_EXISTS.getCode())
+                        .responseMessage(AccountResponses.ACCOUNT_EXISTS.getMessage() + ": Email Address Not Verified!")
+                        .data(null)
+                        .build();
+            }
         }
+        // save customer
+        Customer newCustomer = Customer.builder()
+                .firstName(customerRequest.getFirstName())
+                .lastName(customerRequest.getLastName())
+                .otherName(customerRequest.getOtherName())
+                .gender(customerRequest.getGender())
+                .address(customerRequest.getAddress())
+                .country(customerRequest.getCountry())
+                .state(customerRequest.getState())
+                .email(customerRequest.getEmail())
+                .phoneNumber(customerRequest.getPhoneNumber())
+                .alternativePhoneNumber(customerRequest.getAlternativePhoneNumber())
+                .noOfAccounts(0)
+                .totalBalance(BigDecimal.ZERO)
+                .multipleAccounts(false)
+                .emailVerified(false)
+                .userLocked(true)
+                .build();
+        Customer savedCustomer = customerRepository.save(newCustomer);
+        log.info("New onboarded customer name is {}:::", savedCustomer.getFirstName());
 
-        try {
-            // save customer
-            Customer newCustomer = Customer.builder()
-                    .firstName(customerRequest.getFirstName())
-                    .lastName(customerRequest.getLastName())
-                    .otherName(customerRequest.getOtherName())
-                    .gender(customerRequest.getGender())
-                    .address(customerRequest.getAddress())
-                    .country(customerRequest.getCountry())
-                    .state(customerRequest.getState())
-                    .email(customerRequest.getEmail())
-                    .phoneNumber(customerRequest.getPhoneNumber())
-                    .alternativePhoneNumber(customerRequest.getAlternativePhoneNumber())
-                    .noOfAccounts(0)
-                    .totalBalance(BigDecimal.ZERO)
-                    .emailVerified(false)
-                    .isUserLocked(true)
-                    .build();
-            Customer savedCustomer = customerRepository.save(newCustomer);
-            log.info("New onboarded customer name is {}:::", savedCustomer.getFirstName());
+        credentialService.sendEmailOtp(savedCustomer.getFirstName(), savedCustomer.getEmail(), "Email Verification");
+        log.info("OTP for email verification sent to customer email - {}:::", savedCustomer.getEmail());
 
-            credentialService.sendOtp(savedCustomer.getEmail());
-            log.info("OTP for email verification sent to customer email - {}:::", savedCustomer.getEmail());
+        return AppResponse.builder()
+                .responseCode(AccountResponses.SUCCESS.getCode())
+                .responseMessage(AccountResponses.SUCCESS.getMessage())
+                .data("An OTP has been sent to the provided email address!")
+                .build();
 
-            return AppResponse.builder()
-                    .responseCode(AccountResponses.SUCCESS.getCode())
-                    .responseMessage(AccountResponses.SUCCESS.getMessage())
-                    .data("An OTP has been sent to the provided email address!")
-                    .build();
-        } catch(Exception e) {
-            return AppResponse.builder()
-                    .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage(AccountResponses.FAILED.getMessage())
-                    .data("An error occurred!")
-                    .build();
-        }
     }
 
     @Override
     public AppResponse<?> verifyCustomerEmail(String emailAddress, String otp) {
-        boolean isVerified = credentialService.verifyOtp(emailAddress, otp);
+        boolean isVerified = credentialService.verifyEmailOtp(emailAddress, otp);
         if (isVerified) {
+            customerRepository.findByEmail(emailAddress).ifPresent(customer -> {
+                customer.setEmailVerified(true);
+                customerRepository.save(customer);
+            });
+
             return AppResponse.builder()
                     .responseCode(AccountResponses.SUCCESS.getCode())
                     .responseMessage(AccountResponses.SUCCESS.getMessage())
@@ -126,15 +140,25 @@ public class CustomerServiceImpl implements CustomerService  {
                     .data(null)
                     .build();
         }
-        Customer customer = oCustomer.get();
 
+        Customer customer = oCustomer.get();
         if (!customer.isEmailVerified()) {
-            log.info("Customer Email Verified: {}", customer.isEmailVerified());
+            log.info("Customer Email Is Not Verified");
 
             return AppResponse.builder()
                     .responseCode(AccountResponses.INVALID_REQUEST.getCode())
                     .responseMessage(AccountResponses.INVALID_REQUEST.getMessage())
                     .data("Email Address is not verified!")
+                    .build();
+        }
+
+        if (accountHelper.checkIfCustomerHasAnAccount(customer.getId()) && !customer.isMultipleAccounts()) {
+            log.info("Customer Is Not Approved For Multiple Accounts!");
+
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage(AccountResponses.INVALID_REQUEST.getMessage())
+                    .data("You already have an existing account!")
                     .build();
         }
 
@@ -157,16 +181,23 @@ public class CustomerServiceImpl implements CustomerService  {
                 .build();
         Account savedAccount = accountRepository.save(newAccount);
 
+        customer.setNoOfAccounts(customer.getNoOfAccounts() + 1);
+        customerRepository.save(customer);
+
         // send email to customer
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setSubject(EmailUtils.NEW_CUSTOMER_EMAIL_SUBJECT.getTemplate());
         emailDetails.setBody(EmailUtils.NEW_CUSTOMER_EMAIL_BODY
-                                     .format(customer.getFirstName() + " " + customer.getLastName(), savedAccount.getAccountNumber()));
+                                     .format(appName, customer.getFirstName() + " " + customer.getLastName(), savedAccount.getAccountNumber()));
         emailDetails.setRecipient(customer.getEmail());
         eventPublisher.publishEvent(new EmailEvent(emailDetails));
 
         log.info("Onboarding mail sent to customer email - {}:::", customer.getEmail());
-        return null;
+        return AppResponse.builder()
+                .responseCode(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getCode())
+                .responseMessage(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getMessage())
+                .data(customer)
+                .build();
     }
 
     @Override
@@ -204,8 +235,6 @@ public class CustomerServiceImpl implements CustomerService  {
                         .accountCurrency(account.getAccountCurrency())
                         .accountStatus(account.getAccountStatus())
                         .accountName(accountHelper.getCustomerFullName(customerId))
-                        .linkedPhone(customer.getPhoneNumber())
-                        .linkedEmail(customer.getEmail())
                         .build()
                 )
                 .build();

@@ -13,6 +13,7 @@ import com.zainab.PearsonBank.utils.EmailUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,33 +32,58 @@ public class CredentialServiceImpl implements CredentialService {
     private final AccountHelper accountHelper;
     private final PasswordEncoder passwordEncoder;
 
-
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
-    // Generate and send OTP
-    public void sendOtp(String email) {
-        String otp = accountHelper.generateOTP();
+    @Value("${app.name}")
+    private String appName;
 
-        // generate otp and save details
+    @Value("${app.supportMail}")
+    private String appSupportMail;
+
+    // Generate and send OTP
+    public void sendEmailOtp(String name, String email, String type) {
+        otpRepository.findByEmail(email)
+                .ifPresent(otpRepository::delete);
+
+        String otp = accountHelper.generateOTP();
+        log.info("OTP is {} ", otp);
+
         EmailOtp emailOtp = new EmailOtp();
         emailOtp.setEmail(email);
         emailOtp.setOtp(otp);
         emailOtp.setExpiryTime(LocalDateTime.now().plusMinutes(10));
-        otpRepository.save(emailOtp);
 
-        // send email to user
         EmailDetails emailDetails = new EmailDetails();
-        emailDetails.setSubject(EmailUtils.OTP_VERIFICATION_EMAIL_SUBJECT.getTemplate());
-        emailDetails.setBody(EmailUtils.NEW_CUSTOMER_EMAIL_BODY.format(otp));
+        String subject = "";
+        String body = "";
+        switch (type) {
+            case "Email Verification":
+                subject = EmailUtils.OTP_VERIFICATION_EMAIL_SUBJECT.getTemplate();
+                body = EmailUtils.OTP_VERIFICATION_EMAIL_BODY.format(name, appName, otp);
+                break;
+            default:
+                subject = "New Email";
+                body = "New Email Otp";
+        }
+        emailDetails.setSubject(subject);
+        emailDetails.setBody(body);
         emailDetails.setRecipient(email);
-        eventPublisher.publishEvent(new EmailEvent(emailDetails));
+
+        // save generated otp and send email
+        try {
+            otpRepository.save(emailOtp);
+            eventPublisher.publishEvent(new EmailEvent(emailDetails));
+        } catch (Exception e) {
+            log.error("Failed to send otp - {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     // Verify OTP
-    public boolean verifyOtp(String email, String otp) {
+    public boolean verifyEmailOtp(String email, String otp) {
+        log.info("OTP to be verified is {} ", otp);
         Optional<EmailOtp> validOtp = otpRepository.findTopByEmailAndOtpAndUsedFalseOrderByExpiryTimeDesc(email, otp);
-
         if (validOtp.isEmpty()) return false;
 
         EmailOtp emailOtp = validOtp.get();
@@ -66,12 +92,6 @@ public class CredentialServiceImpl implements CredentialService {
         // Mark OTP as used
         emailOtp.setUsed(true);
         otpRepository.save(emailOtp);
-
-        // Mark email as verified
-        customerRepository.findByEmail(email).ifPresent(customer -> {
-            customer.setEmailVerified(true);
-            customerRepository.save(customer);
-        });
 
         return true;
     }

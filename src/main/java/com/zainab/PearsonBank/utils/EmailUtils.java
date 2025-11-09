@@ -6,14 +6,14 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum EmailUtils {
-    NEW_CUSTOMER_EMAIL_SUBJECT("Welcome to Pearson Bank!"),
+    NEW_CUSTOMER_EMAIL_SUBJECT("Welcome To A New World Of Digital Banking!"),
     NEW_CUSTOMER_EMAIL_BODY(
             """
             <html>
               <body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; color: #333;">
                 <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                  \s
-                  <h2 style="color: #2a9d8f; margin-bottom: 20px;">Welcome to Pearson Bank!</h2>
+                  <h2 style="color: #2a9d8f; margin-bottom: 20px;">Welcome to %s!</h2>
                  \s
                   <p style="font-size: 14px;">Dear %s,</p>
                  \s
@@ -200,31 +200,31 @@ public enum EmailUtils {
                   <div style="margin-top: 20px; background-color: #fef4f4; padding: 15px; border-radius: 6px;">
                     <p style="font-size: 13px; margin: 0;">
                       <strong>Need help?</strong> Reach out to our support team at 
-                      <a href="mailto:support@pbank.com" style="color: #2a9d8f; text-decoration: none;">support@yourapp.com</a>.
+                      <a href="mailto:%s" style="color: #2a9d8f; text-decoration: none;">%s</a>.
                     </p>
                   </div>
                  
                   <p style="font-size: 14px; margin-top: 20px;">Thank you for being part of our community.</p>
-                  <p style="font-size: 14px; margin-top: 10px;">– The YourApp Team</p>
+                  <p style="font-size: 14px; margin-top: 10px;">– The %s Team</p>
                 </div>
               </body>
             </html>
             """
     ),
 
-    OTP_VERIFICATION_EMAIL_SUBJECT("Your Pearson Bank OTP Code"),
+    OTP_VERIFICATION_EMAIL_SUBJECT("Your One Time Password (OTP)"),
     OTP_VERIFICATION_EMAIL_BODY(
             """
             <html>
               <body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; color: #333;">
                 <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                  \s
-                  <h2 style="color: #2a9d8f; margin-bottom: 20px;">Pearson Bank OTP Verification</h2>
+                  <h2 style="color: #2a9d8f; margin-bottom: 20px;">Email Verification</h2>
                  \s
-                  <p style="font-size: 14px;">Dear %s,</p>
+                  <p style="font-size: 14px;">Hello %s!</p>
                  \s
                   <p style="font-size: 14px;">
-                    To verify your email address and proceed with account creation,
+                    To verify your email address and proceed with %s account creation,
                      please use the One-Time Password (OTP) below.
                   </p>
                  \s

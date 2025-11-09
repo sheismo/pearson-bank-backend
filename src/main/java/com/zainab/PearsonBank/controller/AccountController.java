@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/account")
 @Slf4j
@@ -29,8 +31,11 @@ public class AccountController {
     @Operation(summary = "Get Customer Account", description = "API endpoint to get a customer account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/get-account")
-    public ResponseEntity<AppResponse<?>> getCustomerAccount(@RequestBody String accountId, HttpServletRequest request) {
+    public ResponseEntity<AppResponse<?>> getCustomerAccount(@RequestBody Map<String, String> payload, HttpServletRequest request) {
         log.info("Incoming request to get customer account from ip {}", request.getRemoteAddr());
+        String accountId = payload.get("accountId");
+        String channel = payload.get("channel");
+        log.info("Account is in request is: {} - channel is {}", accountId, channel);
 
         if (accountId == null || accountId.isEmpty()) {
             AppResponse<?> response = AppResponse.builder()
@@ -65,21 +70,29 @@ public class AccountController {
     @Operation(summary = "Get Customer Account Statement", description = "API endpoint to get account statement")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/get-account-statement")
-    public ResponseEntity<AppResponse<?>> getAccountStatement(@RequestBody AccountStatementRequest accountStatementRequest, HttpServletRequest request) {
+    public ResponseEntity<?> getAccountStatement(@RequestBody AccountStatementRequest accountStatementRequest, HttpServletRequest request) {
         log.info("Incoming request to get customer account statement: {} from ip {}", accountStatementRequest, request.getRemoteAddr());
 
-        if (accountStatementRequest.getCustomerId() == null || accountStatementRequest.getCustomerId().isEmpty()
-                || accountStatementRequest.getAccountNumber() == null || accountStatementRequest.getAccountNumber().isEmpty()) {
+        String customerId = accountStatementRequest.getCustomerId();
+        String accountNumber = accountStatementRequest.getAccountNumber();
+        String startDate = accountStatementRequest.getStartDate();
+        String endDate = accountStatementRequest.getEndDate();
+
+        if (customerId == null || customerId.isEmpty() || accountNumber == null || accountNumber.isEmpty()
+            || startDate == null || endDate == null) {
             AppResponse<?> response = AppResponse.builder()
                     .responseCode(AccountResponses.INVALID_REQUEST.getCode())
                     .responseMessage(AccountResponses.INVALID_REQUEST.getMessage())
                     .data(null)
                     .build();
         }
+        accountStatementRequest.setSenderIp(request.getRemoteAddr());
 
-        AppResponse<?> response = accountService.generateAccountStatement(accountStatementRequest.getCustomerId(), accountStatementRequest.getAccountNumber(),
-                accountStatementRequest.getStartDate(),  accountStatementRequest.getEndDate());
-        return ResponseEntity.ok(response);
+        try {
+            return accountService.generateAccountStatement(customerId, accountNumber, startDate, endDate);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(null);
+        }
     }
 
     @Operation(summary = "Delete Account", description = "API endpoint to get delete account")
@@ -97,8 +110,8 @@ public class AccountController {
                     .build();
         }
         deleteAccountRequest.setIpAddress(request.getRemoteAddr());
-        AppResponse<?> response = accountService.deleteAccount(deleteAccountRequest);
 
+        AppResponse<?> response = accountService.deleteAccount(deleteAccountRequest);
         return ResponseEntity.ok(response);
     }
 }

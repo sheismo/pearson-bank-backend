@@ -150,11 +150,31 @@ public class AccountHelper {
         return accountRepository.existsById(UUID.fromString(accountId));
     }
 
+    public boolean checkIfCustomerHasAnAccount(UUID customerId) {
+        return accountRepository.existsByCustomerId(customerId);
+    }
+
     public boolean checkIfAccountBelongsToCustomer(String customerId, String accountNumber) {
         Account account = accountRepository.findByAccountNumber(accountNumber);
         if (account == null) return false;
 
         return account.getCustomer().getId().equals(UUID.fromString(customerId));
+    }
+
+    public boolean checkIfCustomerIsVerified(String emailAddress) {
+        Customer customer =  customerRepository.findByEmail(emailAddress)
+                .orElseThrow(RuntimeException::new);
+
+        if (customer == null) return false;
+        return customer.isEmailVerified();
+    }
+
+    public boolean checkIfCustomerIsLocked(String emailAddress) {
+        Customer customer =  customerRepository.findByEmail(emailAddress)
+                .orElseThrow(RuntimeException::new);
+
+        if (customer == null) return false;
+        return customer.isUserLocked();
     }
 
     public boolean checkIfAccountIsActive(String accountNumber) {

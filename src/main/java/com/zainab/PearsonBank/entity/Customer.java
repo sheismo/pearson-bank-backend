@@ -37,10 +37,11 @@ public class Customer {
     private int noOfAccounts;
     private BigDecimal totalBalance;
 
+    private boolean multipleAccounts;
     private String transactionPin;
     private String appPassword;
-    private boolean emailVerified;
-    private boolean isUserLocked;
+    private boolean emailVerified; // set to true after email verification
+    private boolean userLocked; // set to true after initial password setup
     private LocalDateTime lastLoginDate;
 
     @CreationTimestamp
