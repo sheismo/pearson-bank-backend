@@ -32,6 +32,9 @@ public class TransferRequest {
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     private BigDecimal amount;
 
+    @Schema(name = "Narration")
+    private String narration;
+
     @Schema(name = "Request Channel")
     private String channel;
 

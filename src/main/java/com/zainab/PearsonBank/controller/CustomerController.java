@@ -23,7 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/customer")
 @Slf4j
-@Tag(name = "Credentials Management APIs")
+@Tag(name = "Customer Management APIs")
 public class CustomerController {
     @Autowired
     CustomerService customerService;
@@ -38,46 +38,81 @@ public class CustomerController {
     // first time login pops up set transaction pin (if last login date s null)
     public ResponseEntity<AppResponse<?>> onboardCustomer(@RequestBody CustomerRequest customerRequest, HttpServletRequest request) {
         log.info("Incoming request to create new customer account: {} from ip {}", customerRequest, request.getRemoteAddr());
+        AppResponse<?> response = null;
 
         if (!AccountUtils.validateCustomerRequest(customerRequest)) {
             log.error("Invalid Request::::::");
-            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null));
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null);
+            return ResponseEntity.badRequest().body(response);
         }
-        AppResponse<?> response = customerService.onboardNewCustomer(customerRequest);
-        return ResponseEntity.ok(response);
+        try {
+            response = customerService.onboardNewCustomer(customerRequest);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Customer Onboarding Failed: " + e.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     @Operation(summary = "Verify Customer Email", description = "API endpoint to verify customer email ")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/verify-email")
-    public ResponseEntity<AppResponse<?>> verifyCustomerEmail(Map<String, String> verifyEmailRequest, HttpServletRequest request) {
+    public ResponseEntity<AppResponse<?>> verifyCustomerEmail(@RequestBody Map<String, String> verifyEmailRequest, HttpServletRequest request) {
         log.info("Incoming request to verify email for new customer from ip {}", request.getRemoteAddr());
+        AppResponse<?> response = null;
 
         String emailAddress = verifyEmailRequest.get("email");
         String otp = verifyEmailRequest.get("otp");
 
         if (emailAddress == null || emailAddress.isEmpty() || otp == null || otp.isEmpty() ) {
-            log.error("Invalid Request::");
-            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Otp is incorrect!"));
+            log.error("Invalid Request - Empty parameters::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Otp is incorrect!");
+            return ResponseEntity.badRequest().body(response);
         }
 
-        AppResponse<?> response = customerService.verifyCustomerEmail(emailAddress, otp);
-        return ResponseEntity.ok(response);
+        try {
+            response = customerService.verifyCustomerEmail(emailAddress, otp);
+            return ResponseEntity.ok(response);
+        } catch(Exception e) {
+            response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Customer Onboarding Failed: " + e.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
-    @Operation(summary = "Create Account", description = "API endpoint to create account for customer")
+    @Operation(summary = "Create Account For Customer", description = "API endpoint to create account for customer")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/create-account")
-    public ResponseEntity<AppResponse<?>> createCustomer(String emailAddress, HttpServletRequest request) {
+    public ResponseEntity<AppResponse<?>> createAccount(@RequestBody Map<String, String> createAccountRequest, HttpServletRequest request) {
         log.info("Incoming request to create new customer account from ip {}", request.getRemoteAddr());
+        AppResponse<?> response = null;
+
+        String emailAddress = createAccountRequest.get("email");
 
         if (emailAddress == null || emailAddress.isEmpty() ) {
             log.error("Invalid Request:::");
-            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null));
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null);
+            return ResponseEntity.badRequest().body(response);
         }
 
-        AppResponse<?> response = customerService.createAccountForCustomer(emailAddress);
-        return ResponseEntity.ok(response);
+        try {
+            response = customerService.createAccountForCustomer(emailAddress);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Account Creation Failed: " + e.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     @Operation(summary = "Balance Enquiry", description = "API endpoint to check customer account balance")

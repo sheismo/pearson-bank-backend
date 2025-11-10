@@ -43,7 +43,4 @@ public class CustomerRequest {
 
     @Schema(name = "NIN")
     private String nin;
-
-    @Schema(name = "BVN")
-    private String bvn;
 }

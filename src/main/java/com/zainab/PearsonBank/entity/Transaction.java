@@ -30,6 +30,7 @@ public class Transaction {
     private TransactionType type;
     private String referenceNo; // this is the tracking id
     private String channel;
+    private String narration;
 
     @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)

@@ -20,6 +20,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,9 @@ public class TransactionServiceImpl implements TransactionService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Value("${app.name}")
+    private String defaultNarration;
+
     @Transactional
     @Override
     public AppResponse<?> creditAccount(CreditDebitRequest creditRequest) {
@@ -53,8 +57,9 @@ public class TransactionServiceImpl implements TransactionService {
         // extract all parameters
         String crAccountNo = creditRequest.getAccountNumber();
         BigDecimal crAmount = creditRequest.getAmount();
-        UUID customerId = creditRequest.getCustomerId();
+        UUID customerId = creditRequest.getCustomerId(); //get logged in customer account
         String channel = creditRequest.getChannel() != null ? creditRequest.getChannel() : "web";
+        String narration = creditRequest.getNarration() != null ? defaultNarration + creditRequest.getChannel() : defaultNarration;
         String ip = creditRequest.getSenderIp();
 
         Account account = accountRepository.findByAccountNumber(crAccountNo);
@@ -107,6 +112,7 @@ public class TransactionServiceImpl implements TransactionService {
         txn.setInitiatorIp(ip);
         txn.setType(TransactionType.DEPOSIT);
         txn.setChannel(channel);
+        txn.setNarration(narration);
         txn.setTransactionStatus(TransactionStatus.PROCESSING);
 
         Transaction savedTxn = transactionRepository.save(txn);
@@ -144,6 +150,8 @@ public class TransactionServiceImpl implements TransactionService {
                     .responseCode(AccountResponses.ACCOUNT_CREDIT_SUCCESS.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_CREDIT_SUCCESS.getMessage())
                     .data(AccountDetails.builder()
+                            .accountId(account.getId())
+                            .ownerId(customerId)
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -164,6 +172,8 @@ public class TransactionServiceImpl implements TransactionService {
                     .responseCode(AccountResponses.ACCOUNT_CREDIT_FAILED.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_CREDIT_FAILED.getMessage())
                     .data(AccountDetails.builder()
+                            .accountId(account.getId())
+                            .ownerId(customerId)
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -184,6 +194,7 @@ public class TransactionServiceImpl implements TransactionService {
         BigDecimal drAmount = debitRequest.getAmount();
         UUID customerId = debitRequest.getCustomerId();
         String channel = debitRequest.getChannel() != null ? debitRequest.getChannel() : "web";
+        String narration = debitRequest.getNarration() != null ? defaultNarration + debitRequest.getChannel() : defaultNarration;
         String ip = debitRequest.getSenderIp();
 
         Account account = accountRepository.findByAccountNumber(drAccountNo);
@@ -250,6 +261,7 @@ public class TransactionServiceImpl implements TransactionService {
         txn.setInitiatorIp(ip);
         txn.setType(TransactionType.WITHDRAWAL);
         txn.setChannel(channel);
+        txn.setNarration(narration);
         txn.setTransactionStatus(TransactionStatus.PROCESSING);
 
         Transaction savedTxn = transactionRepository.save(txn);
@@ -288,6 +300,8 @@ public class TransactionServiceImpl implements TransactionService {
                     .responseCode(AccountResponses.ACCOUNT_DEBIT_SUCCESS.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_DEBIT_SUCCESS.getMessage())
                     .data(AccountDetails.builder()
+                            .accountId(account.getId())
+                            .ownerId(customerId)
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -308,6 +322,8 @@ public class TransactionServiceImpl implements TransactionService {
                     .responseCode(AccountResponses.ACCOUNT_DEBIT_FAILED.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_DEBIT_FAILED.getMessage())
                     .data(AccountDetails.builder()
+                            .accountId(account.getId())
+                            .ownerId(customerId)
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
@@ -329,6 +345,7 @@ public class TransactionServiceImpl implements TransactionService {
         BigDecimal transferAmount = transferRequest.getAmount();
         UUID customerId = UUID.fromString(transferRequest.getCustomerId());
         String channel = transferRequest.getChannel() != null ? transferRequest.getChannel() : "web";
+        String narration = transferRequest.getNarration() != null ? defaultNarration + transferRequest.getChannel() : defaultNarration;
         String ip = transferRequest.getSenderIp();
 
         // get sender and beneficiary accounts
@@ -411,6 +428,7 @@ public class TransactionServiceImpl implements TransactionService {
         txn.setInitiatorIp(ip);
         txn.setType(TransactionType.TRANSFER);
         txn.setChannel(channel);
+        txn.setNarration(narration);
         txn.setTransactionStatus(TransactionStatus.PROCESSING);
 
         Transaction savedTxn = transactionRepository.save(txn);
@@ -513,24 +531,22 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber) {
-        log.info("Received request to get all transactions for customer with id {} and account {}:::",
-                customerId, accountNumber);
+        log.info("Received request to get all transactions for customer::::");
 
-        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+        if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
 
         return transactionRepository.findAllByInitiator(UUID.fromString(customerId));
     }
 
     @Override
     public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber, String startDate, String endDate) {
-        log.info("Received request to get transactions for customer with id {} and account {} from {} to {}:::",
-                customerId, accountNumber, startDate, endDate);
+        log.info("Received request to get transactions for customer from {} to {}:::", startDate, endDate);
 
         LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
         LocalDateTime end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
 
-        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+        if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
 
-        return transactionRepository.findAllByInitiatorWithinRange(UUID.fromString(customerId), start, end);
+        return transactionRepository.findAllByInitiatorAndCreatedDateBetween(UUID.fromString(customerId), start, end);
     }
 }

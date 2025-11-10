@@ -26,6 +26,9 @@ public class CreditDebitRequest {
     @NotNull(message = "Customer Id is required")
     private UUID customerId;
 
+    @Schema(name = "Narration")
+    private String narration;
+
     @Schema(name = "Request Channel")
     @NotNull(message = "Channel is required")
     private String channel;

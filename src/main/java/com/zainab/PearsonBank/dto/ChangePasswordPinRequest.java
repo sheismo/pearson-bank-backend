@@ -10,10 +10,20 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class GetAccountsRequest {
+public class ChangePasswordPinRequest {
     @Schema(name = "Customer Id")
     private String customerId;
 
+    @Schema(name = "Old Password/Pin")
+    private String oldPassPin;
+
+    @Schema(name = "New Password/Pin")
+    private String newPassPin;
+
     @Schema(name = "Channel")
     private String channel;
+
+    @Schema(name = "Ip Address")
+    private String ipAddress;
+
 }

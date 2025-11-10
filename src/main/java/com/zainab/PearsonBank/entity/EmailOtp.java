@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 
 @Getter
@@ -16,11 +17,12 @@ import java.time.LocalDateTime;
 public class EmailOtp {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private Long id;
+    private UUID id;
 
+    @Column(unique = true)
     private String email;
-    private String otp;
 
+    private String otp;
     private LocalDateTime expiryTime;
     private boolean used = false;
 }

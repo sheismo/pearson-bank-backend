@@ -6,6 +6,9 @@ import com.zainab.PearsonBank.service.TransactionService;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.AccountResponses;
 import com.zainab.PearsonBank.utils.AccountUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/transaction")
 @Slf4j
+@Tag(name = "Transaction Management APIs")
 public class TransactionController {
     @Autowired
     TransactionService transactionService;
@@ -27,6 +31,8 @@ public class TransactionController {
     @Autowired
     AccountHelper accountHelper;
 
+    @Operation(summary = "Credit Account", description = "API endpoint to credit customer account")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/credit-account")
     public ResponseEntity<AppResponse<?>> creditAccount(@RequestBody CreditDebitRequest creditRequest, HttpServletRequest request){
         log.info("Incoming request to credit account: : {} from ip {}", creditRequest, request.getRemoteAddr());
@@ -48,6 +54,8 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Debit Account", description = "API endpoint to get a customer account")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/debit-account")
     public ResponseEntity<AppResponse<?>> debitAccount(@RequestBody CreditDebitRequest debitRequest, HttpServletRequest request){
         log.info("Incoming request to debit account: : {} from ip {}", debitRequest, request.getRemoteAddr());
@@ -69,6 +77,8 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Single Transfer", description = "API endpoint to transfer fundsg")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/single-transfer")
     public ResponseEntity<AppResponse<?>> singleTransfer(@RequestBody TransferRequest transferRequest, HttpServletRequest request){
         log.info("Incoming request to transfer funds from ip {}", request.getRemoteAddr());
@@ -154,7 +164,7 @@ public class TransactionController {
                 return ResponseEntity.ok(response);
             }
         } else { // get list of transactions
-            List<Transaction> transactions;
+            List<Transaction> transactions = null;
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
             } else {
@@ -172,13 +182,7 @@ public class TransactionController {
             }
         }
 
-        AppResponse<?> response = AppResponse.builder()
-                .responseCode(AccountResponses.FAILED.getCode())
-                .responseMessage(AccountResponses.FAILED.getMessage())
-                .data(null)
-                .build();
-
-        return ResponseEntity.internalServerError().body(response);
+        return ResponseEntity.internalServerError().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(), null));
     }
 
 }
