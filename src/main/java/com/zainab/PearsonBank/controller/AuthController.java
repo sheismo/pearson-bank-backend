@@ -38,9 +38,10 @@ public class AuthController {
 
         String customerId = setPasswordRequest.getCustomerId();
         String appPassword = setPasswordRequest.getPassPin();
+        String channel = setPasswordRequest.getChannel();
         setPasswordRequest.setIpAddress(request.getRemoteAddr());
 
-        if (appPassword == null || appPassword.isEmpty() ||  customerId == null || customerId.isEmpty() || !accountHelper.isFirstTimeLogin(customerId) ) {
+        if (appPassword == null || appPassword.isEmpty() ||  customerId == null || customerId.isEmpty() || accountHelper.hasSetAppPassword(customerId) ) {
             log.error("Invalid Request::::");
             response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null);
             return ResponseEntity.badRequest().body(response);
@@ -76,10 +77,11 @@ public class AuthController {
         String customerId = changePasswordRequest.getCustomerId();
         String oldPassword = changePasswordRequest.getOldPassPin();
         String newPassword = changePasswordRequest.getNewPassPin();
+        String channel = changePasswordRequest.getChannel();
         changePasswordRequest.setIpAddress(request.getRemoteAddr());
 
         if (oldPassword == null || oldPassword.isEmpty() || newPassword == null || newPassword.isEmpty() ||
-                customerId == null || customerId.isEmpty() || accountHelper.isFirstTimeLogin(customerId) ) {
+                customerId == null || customerId.isEmpty() || !accountHelper.hasSetAppPassword(customerId) ) {
             log.error("Invalid Request - Empty parameters::::::");
             response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Empty parameters!");
             return ResponseEntity.badRequest().body(response);
@@ -114,9 +116,10 @@ public class AuthController {
 
         String customerId = setPinRequest.getCustomerId();
         String transactionPin = setPinRequest.getPassPin();
+        String channel = setPinRequest.getChannel();
         setPinRequest.setIpAddress(request.getRemoteAddr());
 
-        if (transactionPin == null || transactionPin.isEmpty() ||  customerId == null || customerId.isEmpty() || !accountHelper.isFirstTimeLogin(customerId)) {
+        if (transactionPin == null || transactionPin.isEmpty() ||  customerId == null || customerId.isEmpty() || accountHelper.hasSetTransactionPin(customerId)) {
             log.error("Invalid Request:::::");
             response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Invalid Request");
             return ResponseEntity.badRequest().body(response);
@@ -145,17 +148,18 @@ public class AuthController {
     @Operation(summary = "Change Transaction Pin", description = "API endpoint to change user transaction pin")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/change-pin")
-    public ResponseEntity<AppResponse<?>> changePin(@RequestBody ChangePasswordPinRequest setPinRequest, HttpServletRequest request) {
+    public ResponseEntity<AppResponse<?>> changePin(@RequestBody ChangePasswordPinRequest changePinRequest, HttpServletRequest request) {
         log.info("Incoming request to change transaction pin for customer from ip{}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
-        String customerId = setPinRequest.getCustomerId();
-        String oldTransactionPin = setPinRequest.getOldPassPin();
-        String newTransactionPin = setPinRequest.getNewPassPin();
-        setPinRequest.setIpAddress(request.getRemoteAddr());
+        String customerId = changePinRequest.getCustomerId();
+        String oldTransactionPin = changePinRequest.getOldPassPin();
+        String newTransactionPin = changePinRequest.getNewPassPin();
+        String channel = changePinRequest.getChannel();
+        changePinRequest.setIpAddress(request.getRemoteAddr());
 
         if (oldTransactionPin == null || oldTransactionPin.isEmpty() ||  newTransactionPin == null || newTransactionPin.isEmpty() ||
-                customerId == null || customerId.isEmpty() || accountHelper.isFirstTimeLogin(customerId)) {
+                customerId == null || customerId.isEmpty() || !accountHelper.hasSetTransactionPin(customerId)) {
             log.error("Invalid Request - empty parameters:::::");
             response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Invalid Request");
             return ResponseEntity.badRequest().body(response);

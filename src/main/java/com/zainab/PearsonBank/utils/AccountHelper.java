@@ -177,12 +177,20 @@ public class AccountHelper {
         return customer.isUserLocked();
     }
 
-    public boolean isFirstTimeLogin(String customerId) {
+    public boolean hasSetTransactionPin(String customerId) {
         Customer customer =  customerRepository.findById(UUID.fromString(customerId))
                 .orElseThrow(RuntimeException::new);
 
         if (customer == null) return false;
-        return customer.getAppPassword() == null || customer.getTransactionPin() == null;
+        return !(customer.getTransactionPin() == null);
+    }
+
+    public boolean hasSetAppPassword(String customerId) {
+        Customer customer = customerRepository.findById(UUID.fromString(customerId))
+                .orElseThrow(RuntimeException::new);
+
+        if (customer == null) return false;
+        return !(customer.getAppPassword() == null);
     }
 
     public boolean checkIfAccountIsActive(String accountNumber) {

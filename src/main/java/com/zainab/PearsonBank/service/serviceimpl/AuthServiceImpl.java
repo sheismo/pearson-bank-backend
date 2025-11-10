@@ -105,7 +105,7 @@ public class AuthServiceImpl implements AuthService {
         String hashedPassword = passwordEncoder.encode(password);
         if(customer.getAppPassword() != null && customer.getAppPassword().equals(hashedPassword)) return "You cannot use your old password";
 
-        customer.setTransactionPin(hashedPassword);
+        customer.setAppPassword(hashedPassword);
         customerRepository.save(customer);
         return "Password set successfully!";
     }
@@ -116,12 +116,11 @@ public class AuthServiceImpl implements AuthService {
             return "Failed: Old Password cannot be the same as New Password";
         }
 
-        if (confirmAppPassword(customerId, oldPassword)) { //&& accountHelper.canUsePassword(customerId, newPassword)
+        if (confirmAppPassword(customerId, oldPassword)) { //&& accountHelper.isValidPassword(customerId, newPassword)
             // save to cred history table
             return setAppPassword(customerId, newPassword);
         }
-
-        return "Failed!";
+        return "Error occurred: Could not change user app assword!";
     }
 
     @Override
@@ -130,7 +129,7 @@ public class AuthServiceImpl implements AuthService {
         if (oCustomer.isEmpty()) return false;
 
         Customer customer = oCustomer.get();
-        return passwordEncoder.matches(password, customer.getTransactionPin());
+        return passwordEncoder.matches(password, customer.getAppPassword());
     }
 
     @Override
@@ -153,9 +152,9 @@ public class AuthServiceImpl implements AuthService {
             return "Failed: Old Pin cannot be the same as New Pin";
         }
 
-        if (confirmTransactionPin(customerId, oldTransactionPin)) { // && accountHelper.canUsePin(customerId, newTransactionPin)
+        if (confirmTransactionPin(customerId, oldTransactionPin)) { // && accountHelper.isValidPin(customerId, newTransactionPin)
             // save to cred history table
-            return setAppPassword(customerId, newTransactionPin);
+            return setTransactionPin(customerId, newTransactionPin);
         }
 
         return "Failed!";
