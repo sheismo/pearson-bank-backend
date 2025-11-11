@@ -157,7 +157,7 @@ public class AuthServiceImpl implements AuthService {
             return setTransactionPin(customerId, newTransactionPin);
         }
 
-        return "Failed!";
+        return "Failed to set transaction pin!";
     }
 
     @Override
