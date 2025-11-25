@@ -27,7 +27,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
         ),
         externalDocs = @ExternalDocumentation(
                 description = "Pearson Fintech App External Documentation",
-                url = "https://github.com/sheismo/pearson-bank"
+                url = "https://github.com/sheismo/pearson-bank-backend"
         )
 
 )

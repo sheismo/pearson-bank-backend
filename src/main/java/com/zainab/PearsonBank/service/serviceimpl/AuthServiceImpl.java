@@ -1,24 +1,32 @@
 package com.zainab.PearsonBank.service.serviceimpl;
 
-import com.zainab.PearsonBank.dto.EmailDetails;
+import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.entity.Customer;
 import com.zainab.PearsonBank.entity.EmailOtp;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.CustomerRepository;
 import com.zainab.PearsonBank.repository.EmailOtpRepository;
+import com.zainab.PearsonBank.security.JwtTokenProvider;
 import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.EmailUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,6 +41,9 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
     private ApplicationEventPublisher eventPublisher;
 
     @Value("${app.name}")
@@ -40,6 +51,120 @@ public class AuthServiceImpl implements AuthService {
 
     @Value("${app.supportMail}")
     private String appSupportMail;
+
+    @Value("${app.base-url}")
+    private String appBaseUrl;
+
+    @Override
+    public JwtResponse authenticateUser(LoginRequest loginRequest) {
+        Customer customer = customerRepository.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("Customer not found!"));
+
+        if (!passwordEncoder.matches(loginRequest.getPassword(), customer.getAppPassword())) {
+            throw new RuntimeException("Invalid Password!");
+        }
+
+        if (!customer.isProfileEnabled()) {
+            throw new RuntimeException("Customer profile is disabled!");
+        }
+
+        String token = jwtTokenProvider.generateAccessToken(
+                new User(customer.getEmail(), customer.getAppPassword(),
+                        Collections.singletonList(new SimpleGrantedAuthority(customer.getRole().name())))
+        );
+
+        String refreshToken = jwtTokenProvider.generateRefreshToken(customer.getEmail());
+        customer.setRefreshToken(refreshToken);
+        customer.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
+        customerRepository.save(customer);
+
+        return new JwtResponse(String.valueOf(customer.getId()), customer.getEmail(), customer.getRole(),  token, refreshToken, "Bearer ");
+    }
+
+    @Transactional
+    @Override
+    public void forgotPassword(ForgotPasswordRequest forgotPasswordRequest) {
+        Customer customer = customerRepository.findByEmail(forgotPasswordRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("Customer not found with this email: " + forgotPasswordRequest.getEmail()));
+
+        try {
+            String resetToken = generateResetToken();
+            customer.setResetPasswordToken(resetToken);
+            customer.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(24));
+            customerRepository.save(customer);
+
+            String resetUrl = appBaseUrl + "/reset-password?token=" + resetToken;
+
+            EmailDetails emailDetails = new EmailDetails();
+            emailDetails.setSubject(EmailUtils.PASSWORD_RESET_EMAIL_SUBJECT.getTemplate());
+            emailDetails.setBody(EmailUtils.PASSWORD_RESET_EMAIL_BODY.format(customer.getFirstName(), resetUrl));
+            emailDetails.setRecipient(customer.getEmail());
+
+            eventPublisher.publishEvent(new EmailEvent(emailDetails));
+        } catch (Exception e) {
+            log.error("Failed to send reset password email - {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public TokenValidationResponse validateResetToken(String token) {
+        try {
+            Customer customer = customerRepository.findByResetPasswordToken(token)
+                    .orElseThrow(() -> new RuntimeException("Invalid reset token"));
+
+            if (customer.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+                throw new RuntimeException("Reset token has expired");
+            }
+
+            return new TokenValidationResponse("00", "Token Is Valid", true, customer.getEmail());
+        } catch (Exception e) {
+            return new TokenValidationResponse("40", e.getMessage(), false, null);
+        }
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest resetPasswordRequest) {
+        Customer customer = customerRepository.findByResetPasswordToken(resetPasswordRequest.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid Reset Token!"));
+
+        if (customer.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset Token has expired!");
+        }
+
+        customer.setAppPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
+        customer.setResetPasswordToken(null);
+        customer.setResetPasswordTokenExpiry(null);
+        customerRepository.save(customer);
+    }
+
+    @Override
+    public ResponseEntity<?> generateRefreshToken(String refreshToken) {
+        if (refreshToken == null) {
+            return ResponseEntity.badRequest().body("Refresh token is required");
+        }
+
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid refresh token!");
+        }
+
+        String email = jwtTokenProvider.extractUsername(refreshToken);
+        Customer customer = customerRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found!"));
+
+        if (!refreshToken.equals(customer.getRefreshToken())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token mismatch!");
+        }
+
+        String newAccessToken = jwtTokenProvider.generateAccessToken(email);
+
+        return ResponseEntity.ok(Map.of(
+                "token", newAccessToken,
+                "type", "Bearer",
+                "email", email,
+                "role", customer.getRole().name()
+        ));
+    }
 
     @Override
     public void sendEmailOtp(String name, String email, String type) {
@@ -57,14 +182,12 @@ public class AuthServiceImpl implements AuthService {
         EmailDetails emailDetails = new EmailDetails();
         String subject = "";
         String body = "";
-        switch (type) {
-            case "Email Verification":
-                subject = EmailUtils.OTP_VERIFICATION_EMAIL_SUBJECT.getTemplate();
-                body = EmailUtils.OTP_VERIFICATION_EMAIL_BODY.format(name, appName, otp);
-                break;
-            default:
-                subject = "New Email";
-                body = "New Email Otp";
+        if (type.equals("Email Verification")) {
+            subject = EmailUtils.OTP_VERIFICATION_EMAIL_SUBJECT.getTemplate();
+            body = EmailUtils.OTP_VERIFICATION_EMAIL_BODY.format(name, appName, otp);
+        } else {
+            subject = "New Email";
+            body = "New Email Otp";
         }
         emailDetails.setSubject(subject);
         emailDetails.setBody(body);
@@ -106,6 +229,7 @@ public class AuthServiceImpl implements AuthService {
         if(customer.getAppPassword() != null && customer.getAppPassword().equals(hashedPassword)) return "You cannot use your old password";
 
         customer.setAppPassword(hashedPassword);
+        customer.setProfileEnabled(true);
         customerRepository.save(customer);
         return "Password set successfully!";
     }
@@ -169,4 +293,7 @@ public class AuthServiceImpl implements AuthService {
         return passwordEncoder.matches(transactionPin, customer.getTransactionPin());
     }
 
+    private String generateResetToken() {
+        return UUID.randomUUID().toString();
+    }
 }

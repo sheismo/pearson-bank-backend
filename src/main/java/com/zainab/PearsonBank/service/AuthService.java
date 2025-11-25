@@ -1,6 +1,16 @@
 package com.zainab.PearsonBank.service;
 
+import com.zainab.PearsonBank.dto.*;
+import org.springframework.http.ResponseEntity;
+
 public interface AuthService {
+    public JwtResponse authenticateUser(LoginRequest loginRequest);
+    public void forgotPassword(ForgotPasswordRequest forgotPasswordRequest);
+    public TokenValidationResponse validateResetToken(String token);
+    public void resetPassword(ResetPasswordRequest resetPasswordRequest);
+
+    public ResponseEntity<?> generateRefreshToken(String refreshToken);
+
     public void sendEmailOtp(String email, String name, String type);
     public boolean verifyEmailOtp(String email, String otp);
 
@@ -11,9 +21,5 @@ public interface AuthService {
     public String setTransactionPin(String customerId, String transactionPin);
     public String changeTransactionPin(String customerId, String oldTransactionPin, String newTransactionPin);
     public boolean confirmTransactionPin(String customerId, String transactionPin);
-
-    // public boolean login() {}
-    // public boolean resetPassword() {} // user passes default password and new password
-    // public boolean forgotPassword() {} // generate default password and set resetpAssword field to Y, save it to the db then send a mail conaining default pasword to user
 }
 

@@ -174,7 +174,7 @@ public class AccountHelper {
                 .orElseThrow(RuntimeException::new);
 
         if (customer == null) return false;
-        return customer.isUserLocked();
+        return customer.isProfileEnabled();
     }
 
     public boolean hasSetTransactionPin(String customerId) {

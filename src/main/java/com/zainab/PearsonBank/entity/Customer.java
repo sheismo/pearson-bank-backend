@@ -31,6 +31,8 @@ public class Customer {
     private String address;
     private String country;
     private String state;
+
+    @Column(unique = true, nullable = false)
     private String email;
     private String phoneNumber;
     private String alternativePhoneNumber;
@@ -39,10 +41,20 @@ public class Customer {
 
     private boolean multipleAccounts;
     private String transactionPin;
+
     private String appPassword;
     private boolean emailVerified; // set to true after email verification
-    private boolean userLocked; // set to true after initial password setup
+    private boolean profileEnabled; // set to true after initial password setup
     private LocalDateTime lastLoginDate;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
+
+    private String resetPasswordToken;
+    private LocalDateTime resetPasswordTokenExpiry;
+
+    private String refreshToken;
+    private LocalDateTime refreshTokenExpiry;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -64,5 +76,9 @@ public class Customer {
     public void removeAccount(Account account) {
         accounts.remove(account);
         account.setCustomer(null);
+    }
+
+    public enum Role {
+        ROLE_USER, ROLE_ADMIN
     }
 }

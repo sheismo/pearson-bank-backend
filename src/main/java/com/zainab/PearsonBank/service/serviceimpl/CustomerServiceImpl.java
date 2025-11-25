@@ -92,7 +92,8 @@ public class CustomerServiceImpl implements CustomerService  {
                 .totalBalance(BigDecimal.ZERO)
                 .multipleAccounts(false)
                 .emailVerified(false)
-                .userLocked(true)
+                .profileEnabled(false)
+                .role(Customer.Role.ROLE_USER)
                 .build();
         Customer savedCustomer = customerRepository.save(newCustomer);
         log.info("New onboarded customer name is {}:::", savedCustomer.getFirstName());
