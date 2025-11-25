@@ -3,14 +3,18 @@ package com.zainab.PearsonBank.service.serviceimpl;
 import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.entity.Customer;
 import com.zainab.PearsonBank.entity.EmailOtp;
+import com.zainab.PearsonBank.entity.UserSession;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.CustomerRepository;
 import com.zainab.PearsonBank.repository.EmailOtpRepository;
+import com.zainab.PearsonBank.repository.SessionRepository;
 import com.zainab.PearsonBank.security.JwtTokenProvider;
 import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.utils.AccountHelper;
+import com.zainab.PearsonBank.utils.AccountResponses;
 import com.zainab.PearsonBank.utils.EmailUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +27,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -36,6 +41,7 @@ import java.util.UUID;
 public class AuthServiceImpl implements AuthService {
     private final EmailOtpRepository otpRepository;
     private final CustomerRepository customerRepository;
+    private final SessionRepository sessionRepository;
     private final EmailService emailService;
     private final AccountHelper accountHelper;
     private final PasswordEncoder passwordEncoder;
@@ -293,7 +299,90 @@ public class AuthServiceImpl implements AuthService {
         return passwordEncoder.matches(transactionPin, customer.getTransactionPin());
     }
 
+    @Override
+    @Transactional
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        try {
+            String token = extractTokenFromRequest(request);
+            if (token == null && !jwtTokenProvider.validateToken(token)) {
+                return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
+                        "Invalid Request"));
+            }
+            String email = jwtTokenProvider.extractUsername(token);
+
+            UserSession session = sessionRepository.findByAccessToken(token);
+            if (session != null) {
+                session.setRevoked(true);
+                sessionRepository.save(session);
+            }
+
+            Customer customer = customerRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Customer not found!"));
+
+            customer.setRefreshToken(null);
+            customer.setRefreshTokenExpiry(null);
+            customerRepository.save(customer);
+
+            // You might want to add the access token to a blacklist here
+            // For a more secure implementation
+
+            return ResponseEntity.ok(new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(),
+                            "Logged out successfully!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
+                            "Failed to process logout request!")
+            );
+        }
+    }
+
+    @Override
+    @Transactional
+    public ResponseEntity<?> logoutAllDevices(HttpServletRequest request) {
+        try {
+            String token = extractTokenFromRequest(request);
+            if (token == null && !jwtTokenProvider.validateToken(token)) {
+                return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
+                        "Invalid Request!"));
+            }
+            String email = jwtTokenProvider.extractUsername(token);
+
+            UserSession session = sessionRepository.findByAccessToken(token);
+            if (session != null) {
+                session.setRevoked(true);
+                sessionRepository.save(session);
+            }
+
+            Customer customer = customerRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("Customer not found!"));
+
+            customer.setRefreshToken(null);
+            customer.setRefreshTokenExpiry(null);
+            customerRepository.save(customer);
+
+            // Add a token version that gets incremented on password changes or full logout
+            //        customer.setTokenVersion(customer.getTokenVersion() + 1);
+            return ResponseEntity.ok(new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(),
+                    "Logged out of all devices successfully!"));
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(
+                    new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
+                            "Failed to process logout all devices request!")
+            );
+        }
+    }
+
     private String generateResetToken() {
         return UUID.randomUUID().toString();
     }
+
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+
 }

@@ -1,6 +1,7 @@
 package com.zainab.PearsonBank.service;
 
 import com.zainab.PearsonBank.dto.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 
 public interface AuthService {
@@ -21,5 +22,8 @@ public interface AuthService {
     public String setTransactionPin(String customerId, String transactionPin);
     public String changeTransactionPin(String customerId, String oldTransactionPin, String newTransactionPin);
     public boolean confirmTransactionPin(String customerId, String transactionPin);
+
+    public ResponseEntity<?> logout(HttpServletRequest request);
+    public ResponseEntity<?> logoutAllDevices(HttpServletRequest request);
 }
 

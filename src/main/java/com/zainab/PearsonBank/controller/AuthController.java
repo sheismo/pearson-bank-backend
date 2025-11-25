@@ -239,6 +239,8 @@ public class AuthController {
         }
     }
 
+    @Operation(summary = "Refresh Token", description = "API endpoint to refresh token")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> refreshTokenRequest, HttpServletRequest request) {
         log.info("Incoming request to refresh access token from ip {}::", request.getRemoteAddr());
@@ -250,6 +252,20 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new AppResponse<>("40", e.getMessage(), null));
         }
+    }
+
+    @Operation(summary = "Logout", description = "API endpoint to logout")
+    @ApiResponse(responseCode = "200", description = "Logged out successfully!")
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        return authService.logout(request);
+    }
+
+    @Operation(summary = "Logout All Device", description = "API endpoint to logout of all devices")
+    @ApiResponse(responseCode = "200", description = "Logged out of all devices successfully!")
+    @PostMapping("/logout-all")
+    public ResponseEntity<?> logoutAllDevices(HttpServletRequest request) {
+        return authService.logoutAllDevices(request);
     }
 
 }
