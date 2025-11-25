@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,10 +15,11 @@ import java.time.LocalDateTime;
 @Table(name = "user_sessions")
 public class UserSession {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "session_id")
+    private UUID sessionId;
 
-    private Long userId;
+    private UUID userId;
     private String accessToken;
     private LocalDateTime lastActivity;
     private boolean revoked = false;

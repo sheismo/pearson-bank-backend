@@ -30,49 +30,78 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private SessionRepository sessionRepository;
 
+    private static final int INACTIVITY_TIMEOUT_MINUTES = 10;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, @NotNull HttpServletResponse response, @NotNull FilterChain filterChain)
             throws ServletException, IOException {
 
         final String authorizationHeader = request.getHeader("Authorization");
-        String username = null;
-        String jwt = null;
-
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
-            username = jwtTokenProvider.extractUsername(jwt);
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+        final String jwt = authorizationHeader.substring(7);
+        String username;
+
+        try {
+            username = jwtTokenProvider.extractUsername(jwt);
+        } catch (Exception ex) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        UserSession session = sessionRepository.findByAccessToken(jwt);
+        if(session == null || session.isRevoked()) {
+            SecurityContextHolder.clearContext();
+            sendUnauthorized(response, "Session Invalid or revoked!");
+            return;
+        }
+
+        // Check inactivity
+        if(session.getLastActivity()
+                .plusMinutes(INACTIVITY_TIMEOUT_MINUTES)
+                .isBefore(LocalDateTime.now().minusSeconds(30)
+                )) {
+            session.setRevoked(true);
+            sessionRepository.save(session);
+
+            SecurityContextHolder.clearContext();
+            sendUnauthorized(response, "Session timed out!");
+            return;
+        }
+
+        if (!jwtTokenProvider.validateToken(jwt)) {
+            session.setRevoked(true);
+            sessionRepository.save(session);
+
+            SecurityContextHolder.clearContext();
+            sendUnauthorized(response, "Token Invalid or expired!");
+            return;
+        }
+
+        // Update last activity
+        if (session.getLastActivity().isBefore(LocalDateTime.now().minusSeconds(60))) {
+            session.setLastActivity(LocalDateTime.now());
+            sessionRepository.save(session);
+        }
+
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-            if (jwtTokenProvider.validateToken(jwt, userDetails)) {
-                UserSession session = sessionRepository.findByAccessToken(jwt);
-
-                if(session == null || session.isRevoked()) {
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    return;
-                }
-
-                // Check inactivity
-                if(session.getLastActivity().plusMinutes(10).isBefore(LocalDateTime.now())) {
-                    session.setRevoked(true);
-                    sessionRepository.save(session);
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                    return;
-                }
-
-                // Update last activity
-                session.setLastActivity(LocalDateTime.now());
-                sessionRepository.save(session);
-
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+            UsernamePasswordAuthenticationToken authToken =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"message\": \"" + message + "\"}");
     }
 }

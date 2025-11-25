@@ -30,10 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -304,7 +301,7 @@ public class AuthServiceImpl implements AuthService {
     public ResponseEntity<?> logout(HttpServletRequest request) {
         try {
             String token = extractTokenFromRequest(request);
-            if (token == null && !jwtTokenProvider.validateToken(token)) {
+            if (token == null || !jwtTokenProvider.validateToken(token)) {
                 return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
                         "Invalid Request"));
             }
@@ -326,13 +323,13 @@ public class AuthServiceImpl implements AuthService {
             // You might want to add the access token to a blacklist here
             // For a more secure implementation
 
-            return ResponseEntity.ok(new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(),
-                            "Logged out successfully!"));
+            return ResponseEntity.ok(new AppResponse<>(AccountResponses.SUCCESS.getCode(), "Logged out successfully!",
+                            null));
         } catch (Exception e) {
+            log.error("Logout processing failed ", e);
             return ResponseEntity.badRequest().body(
-                    new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
-                            "Failed to process logout request!")
-            );
+                    new AppResponse<>(AccountResponses.FAILED.getCode(), "Failed to process logout request!",
+                            null));
         }
     }
 
@@ -341,7 +338,7 @@ public class AuthServiceImpl implements AuthService {
     public ResponseEntity<?> logoutAllDevices(HttpServletRequest request) {
         try {
             String token = extractTokenFromRequest(request);
-            if (token == null && !jwtTokenProvider.validateToken(token)) {
+            if (token == null || !jwtTokenProvider.validateToken(token)) {
                 return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
                         "Invalid Request!"));
             }
@@ -356,20 +353,25 @@ public class AuthServiceImpl implements AuthService {
             Customer customer = customerRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("Customer not found!"));
 
+            List<UserSession> sessions = sessionRepository.findAllByUserId(customer.getId());
+            sessions.forEach(s -> s.setRevoked(true));
+            sessionRepository.saveAll(sessions);
+
+            sessionRepository.revokeAllSessionsByUserId(customer.getId());
             customer.setRefreshToken(null);
             customer.setRefreshTokenExpiry(null);
             customerRepository.save(customer);
 
             // Add a token version that gets incremented on password changes or full logout
             //        customer.setTokenVersion(customer.getTokenVersion() + 1);
-            return ResponseEntity.ok(new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(),
-                    "Logged out of all devices successfully!"));
+            return ResponseEntity.ok(new AppResponse<>(AccountResponses.SUCCESS.getCode(), "Logged out of all devices successfully!",
+                    null));
 
         } catch (Exception e) {
+            log.error("Logout processing failed ", e);
             return ResponseEntity.badRequest().body(
-                    new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(),
-                            "Failed to process logout all devices request!")
-            );
+                    new AppResponse<>(AccountResponses.FAILED.getCode(), "Failed to process logout all devices request!",
+                            null));
         }
     }
 
