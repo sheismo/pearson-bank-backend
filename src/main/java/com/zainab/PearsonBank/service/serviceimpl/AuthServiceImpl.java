@@ -55,7 +55,7 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.supportMail}")
     private String appSupportMail;
 
-    @Value("${app.base-url}")
+    @Value("${app.baseUrl}")
     private String appBaseUrl;
 
     @Override
@@ -80,6 +80,17 @@ public class AuthServiceImpl implements AuthService {
         customer.setRefreshToken(refreshToken);
         customer.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
         customerRepository.save(customer);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        UserSession session = new UserSession();
+        session.setUserId(customer.getId());
+        session.setAccessToken(token);
+        session.setRefreshToken(refreshToken);
+        session.setLastActivity(now);
+        session.setCreatedAt(now);
+        session.setExpiresAt(LocalDateTime.now().plusMinutes(20));
+        sessionRepository.save(session);
 
         return new JwtResponse(String.valueOf(customer.getId()), customer.getEmail(), customer.getRole(),  token, refreshToken, "Bearer ");
     }
@@ -352,10 +363,6 @@ public class AuthServiceImpl implements AuthService {
 
             Customer customer = customerRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("Customer not found!"));
-
-            List<UserSession> sessions = sessionRepository.findAllByUserId(customer.getId());
-            sessions.forEach(s -> s.setRevoked(true));
-            sessionRepository.saveAll(sessions);
 
             sessionRepository.revokeAllSessionsByUserId(customer.getId());
             customer.setRefreshToken(null);

@@ -21,7 +21,13 @@ public class UserSession {
 
     private UUID userId;
     private String accessToken;
+    private String refreshToken;
     private LocalDateTime lastActivity;
     private boolean revoked = false;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime expiresAt;
+    private String ipAddress;
+    private String userAgent;
 }
 

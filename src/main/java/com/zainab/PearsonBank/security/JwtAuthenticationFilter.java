@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,12 +21,16 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Component
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
     private UserDetailsService userDetailsService;
+
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
 
     @Autowired
     private SessionRepository sessionRepository;
@@ -43,10 +48,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String jwt = authorizationHeader.substring(7);
-        String username;
 
+        String username;
         try {
             username = jwtTokenProvider.extractUsername(jwt);
+            log.info("User email is: {}", username);
         } catch (Exception ex) {
             filterChain.doFilter(request, response);
             return;
@@ -59,11 +65,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        boolean inactive = session.getLastActivity().plusMinutes(INACTIVITY_TIMEOUT_MINUTES).isBefore(now);
+        boolean expired = session.getExpiresAt().isBefore(now);
+
         // Check inactivity
-        if(session.getLastActivity()
-                .plusMinutes(INACTIVITY_TIMEOUT_MINUTES)
-                .isBefore(LocalDateTime.now().minusSeconds(30)
-                )) {
+        if(inactive || expired ) {
             session.setRevoked(true);
             sessionRepository.save(session);
 
@@ -82,13 +89,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // Update last activity
-        if (session.getLastActivity().isBefore(LocalDateTime.now().minusSeconds(60))) {
-            session.setLastActivity(LocalDateTime.now());
-            sessionRepository.save(session);
-        }
+        session.setLastActivity(LocalDateTime.now());
+        sessionRepository.save(session);
 
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

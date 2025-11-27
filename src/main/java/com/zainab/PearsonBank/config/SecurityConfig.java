@@ -23,6 +23,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login",
                                 "/api/auth/reset-password",
+                                "/api/auth/validate-reset-token",
                                 "/api/auth/forgot-password",
                                 "/api/auth/refresh-token",
                                 "/v3/api-docs/**",
@@ -49,4 +50,5 @@ public class SecurityConfig {
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter();
     }
+
 }
