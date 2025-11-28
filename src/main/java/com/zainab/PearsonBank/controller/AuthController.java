@@ -1,8 +1,6 @@
 package com.zainab.PearsonBank.controller;
 
-import com.zainab.PearsonBank.dto.AppResponse;
-import com.zainab.PearsonBank.dto.ChangePasswordPinRequest;
-import com.zainab.PearsonBank.dto.SetPasswordPinRequest;
+import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.AccountResponses;
@@ -10,13 +8,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -185,37 +183,90 @@ public class AuthController {
         }
     }
 
-//    @Operation(summary = "Login", description = "API endpoint to login user ")
-//    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-//    @PostMapping("/login")
-//    public ResponseEntity<AppResponse<?>> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
-//        log.info("Incoming request to login user from ip{}", request.getRemoteAddr());
-//        AppResponse<?> response = null;
-//
-//        String accountNumber = loginRequest.getAccountNumber();
-//        String appPassword = loginRequest.getAppPassword();
-//        loginRequest.setIpAddress(request.getRemoteAddr());
-//
-//        if (accountNumber == null || accountNumber.isEmpty() ||  appPassword == null || appPassword.isEmpty()) {
-//            log.error("Invalid Request - empty parameters::::::");
-//            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Invalid Request");
-//            return ResponseEntity.badRequest().body(response);
-//        }
-//
-//        try {
-//            String res = authService.login();
-//            response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
-//            return ResponseEntity.ok(response);
-//        } catch (Exception e) {
-//            response = AppResponse.builder()
-//                    .responseCode(AccountResponses.FAILED.getCode())
-//                    .responseMessage("Failed to login: " + e.getMessage())
-//                    .data(null)
-//                    .build();
-//            return ResponseEntity.internalServerError().body(response);
-//        }
-//    }
+    @Operation(summary = "Login", description = "API endpoint to login user ")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PostMapping("/login")
+    public ResponseEntity<AppResponse<?>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        log.info("Incoming request to login user from ip{}", request.getRemoteAddr());
+        AppResponse<?> response = null;
 
+        try {
+            JwtResponse res = authService.authenticateUser(loginRequest);
+            response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed to login: " + e.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    @Operation(summary = "Forgot Password", description = "API endpoint for forgot password ")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PostMapping("/forgot-password")
+    public ResponseEntity<AppResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest forgotPasswordRequest, HttpServletRequest request) {
+        log.info("Incoming request for forgot password from ip{}", request.getRemoteAddr());
+
+        try {
+            authService.forgotPassword(forgotPasswordRequest);
+            return ResponseEntity.ok(new AppResponse<>("00", "Password reset mail has been sent!", null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new AppResponse<>("40", e.getMessage(), "null"));
+        }
+    }
+
+    @GetMapping("/validate-reset-token")
+    public ResponseEntity<?> validateResetToken(@RequestParam String token) {
+        log.info("Incoming request to validate reset token::");
+
+        return ResponseEntity.ok().body(authService.validateResetToken(token));
+    }
+
+    @Operation(summary = "Reset Password", description = "API endpoint to reset password")
+    @ApiResponse(responseCode = "200", description = "Password reset successfully!")
+    @PostMapping("/reset-password")
+    public ResponseEntity<AppResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest resetPasswordRequest, HttpServletRequest request) {
+        log.info("Incoming request to reset password from ip {}", request.getRemoteAddr());
+
+        try {
+            authService.resetPassword(resetPasswordRequest);
+            return ResponseEntity.ok(new AppResponse<>("00", "Password reset successfully!", null));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new AppResponse<>("40", e.getMessage(), null));
+        }
+    }
+
+    @Operation(summary = "Refresh Token", description = "API endpoint to refresh token")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> refreshTokenRequest, HttpServletRequest request) {
+        log.info("Incoming request to refresh access token from ip {}::", request.getRemoteAddr());
+
+        try {
+            String refreshToken = refreshTokenRequest.get("refreshToken");
+            return authService.generateRefreshToken(refreshToken);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new AppResponse<>("40", e.getMessage(), null));
+        }
+    }
+
+    @Operation(summary = "Logout", description = "API endpoint to logout")
+    @ApiResponse(responseCode = "200", description = "Logged out successfully!")
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletRequest request) {
+        return authService.logout(request);
+    }
+
+    @Operation(summary = "Logout All Device", description = "API endpoint to logout of all devices")
+    @ApiResponse(responseCode = "200", description = "Logged out of all devices successfully!")
+    @PostMapping("/logout-all")
+    public ResponseEntity<?> logoutAllDevices(HttpServletRequest request) {
+        return authService.logoutAllDevices(request);
+    }
 
 }
 

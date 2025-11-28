@@ -247,6 +247,46 @@ public enum EmailUtils {
               </body>
             </html>
             \s"""
+    ),
+
+    PASSWORD_RESET_EMAIL_SUBJECT("Reset Your Pearson Bank Account Password"),
+    PASSWORD_RESET_EMAIL_BODY(
+            """
+            <html>
+              <body style="font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; color: #333;">
+                <div style="max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                 \s
+                  <h2 style="color: #e76f51; margin-bottom: 20px;">Password Reset Request</h2>
+                 \s
+                  <p style="font-size: 14px;">Hello %s!</p>
+                 \s
+                  <p style="font-size: 14px;">
+                    We received a request to reset the password for your Pearson Bank account.
+                    Click the button below to securely reset your password:
+                  </p>
+                 \s
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="%s"
+                       style="background-color: #2a9d8f; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                       Reset Password
+                    </a>
+                  </div>
+                 \s
+                  <p style="font-size: 14px;">
+                    This link is valid for <strong>10 minutes</strong>. If you did not request a password reset, please ignore this email.
+                  </p>
+                 \s
+                  <p style="font-size: 14px; margin-top: 20px;">
+                    Thank you for banking with <strong>Pearson Bank</strong>.
+                  </p>
+                 \s
+                  <p style="font-size: 12px; color: #888; margin-top: 30px;">
+                    If you have any questions or need assistance, contact our support team.
+                  </p>
+                </div>
+              </body>
+            </html>
+            \s"""
     )
     ;
 

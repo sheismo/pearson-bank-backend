@@ -5,4 +5,5 @@ import jakarta.mail.MessagingException;
 
 public interface EmailService {
     void sendEmailAlert(EmailDetails emailDetails) throws MessagingException;
+    void sendEmailWithAttachment(EmailDetails emailDetails) throws MessagingException;
 }
