@@ -146,6 +146,11 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Reset Token has expired!");
         }
 
+        String hashedPassword = passwordEncoder.encode(resetPasswordRequest.getNewPassword());
+        if (customer.getAppPassword() != null && customer.getAppPassword().equals(hashedPassword)) {
+            throw new RuntimeException("You cannot use old password!");
+        }
+
         customer.setAppPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
         customer.setResetPasswordToken(null);
         customer.setResetPasswordTokenExpiry(null);
