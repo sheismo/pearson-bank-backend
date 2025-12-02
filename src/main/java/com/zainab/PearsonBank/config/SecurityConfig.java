@@ -21,11 +21,16 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/login",
+                        .requestMatchers(
+                                "/api/customer/onboard",
+                                "/api/customer/verify-email",
+                                "/api/customer/create-account",
+                                "/api/auth/login",
                                 "/api/auth/reset-password",
                                 "/api/auth/validate-reset-token",
                                 "/api/auth/forgot-password",
                                 "/api/auth/refresh-token",
+                                "/api/auth/set-password",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
