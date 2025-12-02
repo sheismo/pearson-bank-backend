@@ -12,16 +12,16 @@ import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
 import com.zainab.PearsonBank.types.TransactionStatus;
 import com.zainab.PearsonBank.types.TransactionType;
-import com.zainab.PearsonBank.utils.AccountHelper;
-import com.zainab.PearsonBank.utils.AccountResponses;
-import com.zainab.PearsonBank.utils.AccountUtils;
-import com.zainab.PearsonBank.utils.EmailUtils;
+import com.zainab.PearsonBank.utils.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +42,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionRepository transactionRepository;
     private final EmailService emailService;
     private final AccountHelper accountHelper;
+    private final PdfGenerator pdfGenerator;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -548,5 +549,29 @@ public class TransactionServiceImpl implements TransactionService {
         if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
 
         return transactionRepository.findAllByInitiatorAndCreatedDateBetween(UUID.fromString(customerId), start, end);
+    }
+
+    @Override
+    public ResponseEntity<?> generateReceiptPdf(String transactionId) {
+        log.info("Received request to generate transaction receipt for customer");
+
+        // TODO get logged-in user details
+        // check if the customer id passed is same as customer id of the logged-in customer
+        // check if loggedInCustomer is owner of transaction
+//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
+
+        Transaction transaction = transactionRepository.findByTransactionId(UUID.fromString(transactionId));
+        if (transaction == null) {
+            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(), null) );
+        };
+
+        byte[] pdfBytes = pdfGenerator.generateReceipt(transaction);
+        String filename = String.format("receipt_%s.pdf", transaction.getCreatedDate());
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+
     }
 }

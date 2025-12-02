@@ -176,6 +176,22 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(email);
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(email);
+
+        customer.setRefreshToken(refreshToken);
+        customer.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
+        customerRepository.save(customer);
+
+        LocalDateTime now = LocalDateTime.now();
+
+        UserSession session = new UserSession();
+        session.setUserId(customer.getId());
+        session.setAccessToken(newAccessToken);
+        session.setRefreshToken(newRefreshToken);
+        session.setLastActivity(now);
+        session.setCreatedAt(now);
+        session.setExpiresAt(LocalDateTime.now().plusMinutes(20));
+        sessionRepository.save(session);
 
         return ResponseEntity.ok(Map.of(
                 "token", newAccessToken,

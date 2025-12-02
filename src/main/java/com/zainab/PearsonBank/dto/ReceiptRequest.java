@@ -10,9 +10,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DeleteAccountRequest {
+public class ReceiptRequest {
+    private String transactionId;
     private String customerId;
-    private String accountId;
 
     @JsonIgnore
     private String senderIp;

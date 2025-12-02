@@ -109,7 +109,7 @@ public class AccountController {
                     .data(null)
                     .build();
         }
-        deleteAccountRequest.setIpAddress(request.getRemoteAddr());
+        deleteAccountRequest.setSenderIp(request.getRemoteAddr());
 
         AppResponse<?> response = accountService.deleteAccount(deleteAccountRequest);
         return ResponseEntity.ok(response);

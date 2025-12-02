@@ -185,4 +185,27 @@ public class TransactionController {
         return ResponseEntity.internalServerError().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(), null));
     }
 
+    @PostMapping("/download-receipt")
+    public ResponseEntity<?> generateReceipt(@RequestBody ReceiptRequest receiptRequest, HttpServletRequest request) {
+        log.info("Incoming request to get transaction receipt for from ip {}", request.getRemoteAddr());
+
+        String transactionId = receiptRequest.getTransactionId();
+        String customerId =  receiptRequest.getTransactionId();
+
+        if (customerId == null || customerId.isEmpty() || transactionId == null || transactionId.isEmpty()) {
+            AppResponse<?> response = AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage(AccountResponses.INVALID_REQUEST.getMessage())
+                    .data(null)
+                    .build();
+        }
+        receiptRequest.setSenderIp(request.getRemoteAddr());
+
+        try {
+            return transactionService.generateReceiptPdf(transactionId);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
 }
