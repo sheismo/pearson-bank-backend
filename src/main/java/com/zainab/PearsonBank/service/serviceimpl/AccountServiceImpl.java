@@ -192,7 +192,7 @@ public class AccountServiceImpl implements AccountService {
         EmailDetails accountDeletionEmail = new EmailDetails();
         accountDeletionEmail.setSubject(EmailUtils.ACCOUNT_DELETION_ALERT_SUBJECT.getTemplate());
         accountDeletionEmail.setBody(EmailUtils.ACCOUNT_DELETION_ALERT_BODY.format(
-                accountHelper.getCustomerFullName(UUID.fromString(customerId)), formattedDate,
+                customerDetails.getFullName(), formattedDate,
                 appSupportMail, appSupportMail, appName
         ));
         accountDeletionEmail.setRecipient(customerDetails.getEmail());

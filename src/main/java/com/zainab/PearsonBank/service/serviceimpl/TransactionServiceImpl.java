@@ -436,7 +436,7 @@ public class TransactionServiceImpl implements TransactionService {
         String txnReference = accountHelper.generateReference(savedTxn.getTransactionId(), sender.getId());
 
         try {
-            // debit sender and credit beneficary
+            // debit sender and credit beneficiary
             BigDecimal newSenderBalance = senderAcc.getAccountBalance().subtract(transferAmount);
             BigDecimal newSenderTotalBalance = sender.getTotalBalance().subtract(transferAmount);
 

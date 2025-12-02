@@ -2,6 +2,7 @@ package com.zainab.PearsonBank.repository;
 
 
 import com.zainab.PearsonBank.entity.Account;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -14,4 +15,5 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     boolean existsByAccountNumber(String accountNumber);
 
     Account findByAccountNumber(String accountNumber);
+    @NotNull List<Account> findAll();
 }

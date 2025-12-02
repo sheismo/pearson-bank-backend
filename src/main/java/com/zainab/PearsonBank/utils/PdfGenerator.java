@@ -272,7 +272,10 @@ public class PdfGenerator {
             titleCell.setAlignment(Element.ALIGN_CENTER);
             headerCell.addElement(titleCell);
 
-            Paragraph dateCell = new Paragraph(txn.getCreatedDate().toString(), smallFont);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+            String date = txn.getCreatedDate().format(dtf);
+
+            Paragraph dateCell = new Paragraph(date, smallFont);
             dateCell.setAlignment(Element.ALIGN_LEFT);
             headerCell.addElement(dateCell);
 
