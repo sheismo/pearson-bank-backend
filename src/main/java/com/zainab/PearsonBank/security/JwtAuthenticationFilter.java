@@ -2,6 +2,7 @@ package com.zainab.PearsonBank.security;
 
 import com.zainab.PearsonBank.entity.UserSession;
 import com.zainab.PearsonBank.repository.SessionRepository;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -19,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 @Slf4j
@@ -79,6 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        // check if token is active
         if (!jwtTokenProvider.validateToken(jwt)) {
             session.setRevoked(true);
             sessionRepository.save(session);
@@ -92,11 +97,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         session.setLastActivity(LocalDateTime.now());
         sessionRepository.save(session);
 
+        // GET USER ROLES
+        Claims claims = jwtTokenProvider.extractAllClaims(jwt);
+        String role = (String) claims.get("role");
+
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+            System.out.println("Authorities: " + userDetails.getAuthorities());
+            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
 
             UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }

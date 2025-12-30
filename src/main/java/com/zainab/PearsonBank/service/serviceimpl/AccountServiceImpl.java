@@ -5,7 +5,7 @@ import com.zainab.PearsonBank.entity.Account;
 import com.zainab.PearsonBank.entity.Transaction;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.AccountRepository;
-import com.zainab.PearsonBank.repository.CustomerRepository;
+import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.service.AccountService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
@@ -35,7 +35,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
     private final AccountRepository accountRepository;
-    private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final EmailService emailService;
     private final TransactionService transactionService;
     private final AccountHelper accountHelper;
@@ -52,10 +52,10 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AppResponse<?> getAccount(String accountId) {
-        log.info("Received request to get customer account:::");
+        log.info("Received request to get user account:::");
 
         // TODO get logged-in user details
-        // check if the account id passed is owned by the logged-in customer
+        // check if the account id passed is owned by the logged-in user
 //        boolean isLoggedInCustomerMakingRequest; accountId.getCustomerId().equals(loggedInCustomerId)
 
         boolean accountExists = accountHelper.checkIfAccountExistsById(accountId);
@@ -78,16 +78,16 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AppResponse<?> getAccounts(GetAccountsRequest request) {
-        log.info("Received request to get customer accounts:::");
+        log.info("Received request to get user accounts:::");
 
         // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
+        // check if the user id passed is same as user id of the logged-in user
 //        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
 
         String customerId = request.getCustomerId();
         boolean customerExists = accountHelper.checkIfCustomerExistsById(customerId);
         if (!customerExists) {
-            log.error("Customer does not exist::::");
+            log.error("User does not exist::::");
             return AppResponse.builder()
                     .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
                     .responseMessage(AccountResponses.CUSTOMER_NOT_FOUND.getMessage())
@@ -95,11 +95,11 @@ public class AccountServiceImpl implements AccountService {
                     .build();
         }
 
-        List<Account> accounts = accountRepository.findByCustomerId(UUID.fromString(customerId));
+        List<Account> accounts = accountRepository.findByUserId(UUID.fromString(customerId));
         if (accounts == null || accounts.isEmpty()) {
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_NOT_FOUND.getCode())
-                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage() + " for tis customer")
+                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage() + " for tis user")
                     .data(null)
                     .build();
         }
@@ -113,11 +113,11 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public ResponseEntity<?> generateAccountStatement(String customerId, String accountNumber, String startDate, String endDate) {
-        log.info("Received request to generate account statement for customer with id {} and account {}",
+        log.info("Received request to generate account statement for user with id {} and account {}",
                 customerId, accountNumber);
 
         // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
+        // check if the user id passed is same as user id of the logged-in user
         // check if loggedInCustomer is owner of account number
 //        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
 
@@ -129,7 +129,7 @@ public class AccountServiceImpl implements AccountService {
 
         boolean customerExists = accountHelper.checkIfCustomerExistsById(customerId);
         if (!customerExists) {
-            log.error("Customer does not exist:::");
+            log.error("User does not exist:::");
             return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.CUSTOMER_NOT_FOUND.getCode(), AccountResponses.CUSTOMER_NOT_FOUND.getMessage(), null) );
         }
 
@@ -137,8 +137,8 @@ public class AccountServiceImpl implements AccountService {
         List<Transaction> transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
 
         if (transactions == null || transactions.isEmpty()) {
-            log.error("Transactions not found for customer within this date range:::");
-            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), "Transactions not found for customer within this date range", null) );
+            log.error("Transactions not found for user within this date range:::");
+            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), "Transactions not found for user within this date range", null) );
         }
 
         byte[] pdfBytes = pdfGenerator.generateStatement(transactions, accountNumber, customer, startDate, endDate);
@@ -157,7 +157,7 @@ public class AccountServiceImpl implements AccountService {
     @Transactional
     @Override
     public AppResponse<?> deleteAccount(DeleteAccountRequest deleteAccountRequest) {
-        log.info("Received request to delete account for customer with id {} and account with id{}",
+        log.info("Received request to delete account for user with id {} and account with id{}",
                 deleteAccountRequest.getCustomerId(), deleteAccountRequest.getAccountId());
 
         String accountId = deleteAccountRequest.getAccountId();
@@ -183,7 +183,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         if (customerDetails.getNoOfAccounts() <= 1) {
-            customerRepository.deleteById(UUID.fromString(customerId)); // delete customer is that is the only account
+            userRepository.deleteById(UUID.fromString(customerId)); // delete user is that is the only account
         }
         accountRepository.deleteById(UUID.fromString(accountId));
         LocalDateTime now = LocalDateTime.now();

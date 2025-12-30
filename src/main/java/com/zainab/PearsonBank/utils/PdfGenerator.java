@@ -87,14 +87,14 @@ public class PdfGenerator {
             detailsTable.setSpacingAfter(25f);
             detailsTable.setWidths(new int[]{1, 1});
 
-            // Left column - Customer details
+            // Left column - User details
             PdfPCell customerSection = new PdfPCell();
             customerSection.setBorder(Rectangle.NO_BORDER);
             customerSection.setPadding(15f);
             customerSection.setBackgroundColor(lightGray);
 
             Paragraph customerInfo = new Paragraph();
-            customerInfo.add(new Chunk("Customer Information\n", labelFont));
+            customerInfo.add(new Chunk("User Information\n", labelFont));
             customerInfo.add(new Chunk("\n"));
             customerInfo.add(new Chunk("Name: ", labelFont));
             customerInfo.add(new Chunk(customer.getFullName() + "\n", valueFont));

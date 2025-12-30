@@ -14,10 +14,10 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomerDetails {
-    @Schema(name = "Customer Id")
+    @Schema(name = "User Id")
     private UUID id;
 
-    @Schema(name = "Customer Name")
+    @Schema(name = "User Name")
     private String fullName;
 
     @Schema(name = "Gender")
@@ -26,11 +26,8 @@ public class CustomerDetails {
     @Schema(name = "Home Address")
     private String address;
 
-    @Schema(name = "Country")
-    private String country;
-
-    @Schema(name = "State")
-    private String state;
+    @Schema(name = "Location")
+    private String location;
 
     @Schema(name = "Email Address")
     private String email;

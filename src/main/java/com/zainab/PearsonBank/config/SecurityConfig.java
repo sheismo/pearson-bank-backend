@@ -22,9 +22,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/customer/onboard",
-                                "/api/customer/verify-email",
-                                "/api/customer/create-account",
+                                "/api/user/onboard",
+                                "/api/user/verify-email",
+                                "/api/user/create-account",
                                 "/api/auth/login",
                                 "/api/auth/reset-password",
                                 "/api/auth/validate-reset-token",

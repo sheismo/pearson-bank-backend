@@ -22,7 +22,7 @@ public enum AccountResponses {
     INSUFFICIENT_FUNDS("11", "Insufficient Funds!"),
     FUNDS_TRANSFER_SUCCESSFUL("00", "Transfer processed successfully"),
     FUNDS_TRANSFER_FAILED("13", "Error: transfer processing failed"),
-    CUSTOMER_NOT_FOUND("14", "Customer not found"),
+    CUSTOMER_NOT_FOUND("14", "User not found"),
     ACCOUNT_DELETION_SUCCESSFUL("00", "Account deleted successfully!"),
     ACCOUNT_DELETION_FAILED("19", "Failed to delete account!");
 

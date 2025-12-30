@@ -2,11 +2,11 @@ package com.zainab.PearsonBank.service.serviceimpl;
 
 import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.entity.Account;
-import com.zainab.PearsonBank.entity.Customer;
+import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.entity.Transaction;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.AccountRepository;
-import com.zainab.PearsonBank.repository.CustomerRepository;
+import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.repository.TransactionRepository;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
@@ -37,7 +37,7 @@ import java.util.UUID;
 @Slf4j
 @RequiredArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
-    private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final EmailService emailService;
@@ -58,22 +58,22 @@ public class TransactionServiceImpl implements TransactionService {
         // extract all parameters
         String crAccountNo = creditRequest.getAccountNumber();
         BigDecimal crAmount = creditRequest.getAmount();
-        UUID customerId = creditRequest.getCustomerId(); //get logged in customer account
+        UUID customerId = creditRequest.getCustomerId(); //get logged in user account
         String channel = creditRequest.getChannel() != null ? creditRequest.getChannel() : "web";
         String narration = creditRequest.getNarration() != null ? defaultNarration + creditRequest.getChannel() : defaultNarration;
         String ip = creditRequest.getSenderIp();
 
         Account account = accountRepository.findByAccountNumber(crAccountNo);
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + customerId));
-        log.info("Account no is: {}, Customer name is: {}", account.getAccountNumber(), accountHelper.getCustomerFullName(customer));
+        User user = userRepository.findById(customerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
+        log.info("Account no is: {}, User name is: {}", account.getAccountNumber(), accountHelper.getCustomerFullName(user));
 
         // TODO verify request
-        // check if the customer id passed is same as customer id of the logged-in customer
-        // check if debit acc/no passed in the request is the same as acc/no of the logged-in customer
+        // check if the user id passed is same as user id of the logged-in user
+        // check if debit acc/no passed in the request is the same as acc/no of the logged-in user
 //        boolean isLoggedInCustomerMakingRequest; customerId().equals(loggedInCustomerId)
-//        boolean isLoggedInCustomerOwnerOfAccount = account.getCustomer().getId().equals(loggedInCustomerId);
-//        boolean isCustomerMakingRequestOwnerOfAccount = account.getCustomer().getId().equals(customerId);
+//        boolean isLoggedInCustomerOwnerOfAccount = account.getUser().getId().equals(loggedInCustomerId);
+//        boolean isCustomerMakingRequestOwnerOfAccount = account.getUser().getId().equals(customerId);
 
         // check if account number exists
         boolean accountExists = accountHelper.checkIfAccountExists(crAccountNo);
@@ -101,7 +101,7 @@ public class TransactionServiceImpl implements TransactionService {
         // proceed to credit
         Transaction txn = new Transaction();
         txn.setAmount(String.valueOf(crAmount));
-        txn.setCrAccountName(accountHelper.getCustomerFullName(customer));
+        txn.setCrAccountName(accountHelper.getCustomerFullName(user));
         txn.setCrAccountNumber(crAccountNo);
         txn.setDrAccountName("system");
         txn.setDrAccountNumber("system");
@@ -125,9 +125,9 @@ public class TransactionServiceImpl implements TransactionService {
             account.setAccountBalance(newBalance);
             accountRepository.save(account);
 
-            BigDecimal newTotalBalance = customer.getTotalBalance().add(crAmount);
-            customer.setTotalBalance(newTotalBalance);
-            customerRepository.save(customer);
+            BigDecimal newTotalBalance = user.getTotalBalance().add(crAmount);
+            user.setTotalBalance(newTotalBalance);
+            userRepository.save(user);
 
             savedTxn.setReferenceNo(txnReference);
             savedTxn.setTransactionStatus(TransactionStatus.SUCCESSFUL);
@@ -139,9 +139,9 @@ public class TransactionServiceImpl implements TransactionService {
             EmailDetails depositEmail = new EmailDetails();
             depositEmail.setSubject(EmailUtils.NEW_TRANSACTION_DEPOSIT_ALERT_SUBJECT.getTemplate());
             depositEmail.setBody(EmailUtils.NEW_TRANSACTION_DEPOSIT_ALERT_BODY.format(
-                    accountHelper.getCustomerFullName(customer), "₦" + crAmount.toPlainString(), formattedDate
+                    accountHelper.getCustomerFullName(user), "₦" + crAmount.toPlainString(), formattedDate
             ));
-            depositEmail.setRecipient(customer.getEmail());
+            depositEmail.setRecipient(user.getEmail());
             eventPublisher.publishEvent(
                     new EmailEvent(depositEmail)
             );
@@ -158,8 +158,8 @@ public class TransactionServiceImpl implements TransactionService {
                             .accountNumber(account.getAccountNumber())
                             .accountCurrency(account.getAccountCurrency())
                             .accountStatus(account.getAccountStatus())
-                            .linkedEmail(customer.getEmail())
-                            .linkedPhone(customer.getPhoneNumber())
+                            .linkedEmail(user.getEmail())
+                            .linkedPhone(user.getPhoneNumber())
                             .build())
                     .build();
         } catch (Exception e) {
@@ -178,8 +178,8 @@ public class TransactionServiceImpl implements TransactionService {
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
-                            .linkedEmail(customer.getEmail())
-                            .linkedPhone(customer.getPhoneNumber())
+                            .linkedEmail(user.getEmail())
+                            .linkedPhone(user.getPhoneNumber())
                             .build())
                     .build();
         }
@@ -199,15 +199,15 @@ public class TransactionServiceImpl implements TransactionService {
         String ip = debitRequest.getSenderIp();
 
         Account account = accountRepository.findByAccountNumber(drAccountNo);
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + customerId));
+        User user = userRepository.findById(customerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
 
         // TODO verify request
-        // check if the customer id passed is same as customer id of the logged-in customer
-        // check if debit acc/no passed in the request is the same as acc/no of the logged-in customer
+        // check if the user id passed is same as user id of the logged-in user
+        // check if debit acc/no passed in the request is the same as acc/no of the logged-in user
 //        boolean isLoggedInCustomerMakingRequest; debitRequest.getCustomerId().equals(loggedInCustomerId)
-//        boolean isLoggedInCustomerOwnerOfAccount = account.getCustomer().getId().equals(loggedInCustomerId);
-//        boolean isCustomerMakingRequestOwnerOfAccount = account.getCustomer().getId().equals(customerId);
+//        boolean isLoggedInCustomerOwnerOfAccount = account.getUser().getId().equals(loggedInCustomerId);
+//        boolean isCustomerMakingRequestOwnerOfAccount = account.getUser().getId().equals(customerId);
 
         // check if account exists
         boolean accountExists = accountHelper.checkIfAccountExists(drAccountNo);
@@ -240,7 +240,7 @@ public class TransactionServiceImpl implements TransactionService {
                     .responseMessage(AccountResponses.INSUFFICIENT_FUNDS.getMessage())
                     .data(AccountDetails.builder()
                             .accountNumber(account.getAccountNumber())
-                            .accountName(accountHelper.getCustomerFullName(customer))
+                            .accountName(accountHelper.getCustomerFullName(user))
                             .accountBalance(account.getAccountBalance())
                             .build())
                     .build();
@@ -250,7 +250,7 @@ public class TransactionServiceImpl implements TransactionService {
         log.info("Debiting account - acc number: {}, amount: {}", drAccountNo, drAmount);
         Transaction txn = new Transaction();
         txn.setAmount(String.valueOf(drAmount));
-        txn.setDrAccountName(accountHelper.getCustomerFullName(customer));
+        txn.setDrAccountName(accountHelper.getCustomerFullName(user));
         txn.setDrAccountNumber(drAccountNo);
         txn.setCrAccountName("system");
         txn.setCrAccountNumber("system");
@@ -275,9 +275,9 @@ public class TransactionServiceImpl implements TransactionService {
             account.setAccountBalance(newBalance);
             accountRepository.save(account);
 
-            BigDecimal newTotalBalance = customer.getTotalBalance().subtract(drAmount);
-            customer.setTotalBalance(newTotalBalance);
-            customerRepository.save(customer);
+            BigDecimal newTotalBalance = user.getTotalBalance().subtract(drAmount);
+            user.setTotalBalance(newTotalBalance);
+            userRepository.save(user);
 
             savedTxn.setReferenceNo(txnReference);
             savedTxn.setTransactionStatus(TransactionStatus.SUCCESSFUL);
@@ -289,9 +289,9 @@ public class TransactionServiceImpl implements TransactionService {
             EmailDetails withdrawalEmail = new EmailDetails();
             withdrawalEmail.setSubject(EmailUtils.NEW_TRANSACTION_WITHDRAWAL_ALERT_SUBJECT.getTemplate());
             withdrawalEmail.setBody(EmailUtils.NEW_TRANSACTION_WITHDRAWAL_ALERT_BODY.format(
-                    accountHelper.getCustomerFullName(customer), "₦" + drAmount.toPlainString(), formattedDate
+                    accountHelper.getCustomerFullName(user), "₦" + drAmount.toPlainString(), formattedDate
             ));
-            withdrawalEmail.setRecipient(customer.getEmail());
+            withdrawalEmail.setRecipient(user.getEmail());
             eventPublisher.publishEvent(
                     new EmailEvent(withdrawalEmail)
             );
@@ -308,8 +308,8 @@ public class TransactionServiceImpl implements TransactionService {
                             .accountNumber(account.getAccountNumber())
                             .accountCurrency(account.getAccountCurrency())
                             .accountStatus(account.getAccountStatus())
-                            .linkedEmail(customer.getEmail())
-                            .linkedPhone(customer.getPhoneNumber())
+                            .linkedEmail(user.getEmail())
+                            .linkedPhone(user.getPhoneNumber())
                             .build())
                     .build();
 
@@ -328,8 +328,8 @@ public class TransactionServiceImpl implements TransactionService {
                             .accountName(accountHelper.getCustomerFullName(customerId))
                             .accountBalance(account.getAccountBalance())
                             .accountNumber(account.getAccountNumber())
-                            .linkedEmail(customer.getEmail())
-                            .linkedPhone(customer.getPhoneNumber())
+                            .linkedEmail(user.getEmail())
+                            .linkedPhone(user.getPhoneNumber())
                             .build())
                     .build();
         }
@@ -351,19 +351,19 @@ public class TransactionServiceImpl implements TransactionService {
 
         // get sender and beneficiary accounts
         Account senderAcc = accountRepository.findByAccountNumber(drAccountNo);
-        Customer sender = customerRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + customerId));
+        User sender = userRepository.findById(customerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
 
         Account beneficiaryAcc = accountRepository.findByAccountNumber(crAccountNo);
-        Customer beneficiary = customerRepository.findById(beneficiaryAcc.getCustomer().getId())
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + beneficiaryAcc.getCustomer().getId()));
+        User beneficiary = userRepository.findById(beneficiaryAcc.getUser().getId())
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + beneficiaryAcc.getUser().getId()));
 
         // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
-        // check if debit acc/no passed in the request is the same as acc/no of the logged-in customer
+        // check if the user id passed is same as user id of the logged-in user
+        // check if debit acc/no passed in the request is the same as acc/no of the logged-in user
 //        boolean isLoggedInCustomerMakingRequest; transferRequest.getCustomerId().equals(loggedInCustomerId)
-//        boolean isLoggedInCustomerOwnerOfAccount = senderAcc.getCustomer().getId().equals(loggedInCustomerId);
-//        boolean isCustomerMakingRequestOwnerOfAccount = senderAcc.getCustomer().getId().equals(customerId);
+//        boolean isLoggedInCustomerOwnerOfAccount = senderAcc.getUser().getId().equals(loggedInCustomerId);
+//        boolean isCustomerMakingRequestOwnerOfAccount = senderAcc.getUser().getId().equals(customerId);
 
         // check if accounts exist
         boolean drAccountExists = accountHelper.checkIfAccountExists(drAccountNo);
@@ -411,7 +411,7 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
         }
 
-        log.info("Processing request to transfer NGN {} from account 1 [{}] to  account 2 [{}] by customer with id {}",
+        log.info("Processing request to transfer NGN {} from account 1 [{}] to  account 2 [{}] by user with id {}",
                 transferAmount, drAccountNo, crAccountNo, customerId);
 
         // proceed to transfer funds
@@ -443,7 +443,7 @@ public class TransactionServiceImpl implements TransactionService {
             senderAcc.setAccountBalance(newSenderBalance);
             sender.setTotalBalance(newSenderTotalBalance);
             accountRepository.save(senderAcc);
-            customerRepository.save(sender);
+            userRepository.save(sender);
 
             BigDecimal newBeneficiaryBalance = beneficiaryAcc.getAccountBalance().add(transferAmount);
             BigDecimal newBeneficiaryTotalBalance = beneficiary.getTotalBalance().add(transferAmount);
@@ -451,7 +451,7 @@ public class TransactionServiceImpl implements TransactionService {
             beneficiaryAcc.setAccountBalance(newBeneficiaryBalance);
             beneficiary.setTotalBalance(newBeneficiaryTotalBalance);
             accountRepository.save(beneficiaryAcc);
-            customerRepository.save(beneficiary);
+            userRepository.save(beneficiary);
 
             // send transaction emails
             String formattedDate = transactionDate.format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm:ss"));
@@ -522,7 +522,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public Transaction getSingleTransaction(String customerId, String accountNumber, String transactionId) {
-        log.info("Received request to get single transaction for customer with id {} and account {}",
+        log.info("Received request to get single transaction for user with id {} and account {}",
                 customerId, accountNumber);
 
         if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
@@ -532,7 +532,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber) {
-        log.info("Received request to get all transactions for customer::::");
+        log.info("Received request to get all transactions for user::::");
 
         if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
 
@@ -541,7 +541,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber, String startDate, String endDate) {
-        log.info("Received request to get transactions for customer from {} to {}:::", startDate, endDate);
+        log.info("Received request to get transactions for user from {} to {}:::", startDate, endDate);
 
         LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
         LocalDateTime end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
@@ -553,10 +553,10 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public ResponseEntity<?> generateReceiptPdf(String transactionId) {
-        log.info("Received request to generate transaction receipt for customer");
+        log.info("Received request to generate transaction receipt for user");
 
         // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
+        // check if the user id passed is same as user id of the logged-in user
         // check if loggedInCustomer is owner of transaction
 //        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
 

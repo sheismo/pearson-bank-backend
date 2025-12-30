@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.UUID;
 
 public interface AccountRepository extends JpaRepository<Account, UUID> {
-    List<Account> findByCustomerId(UUID customerId);
+    List<Account> findByUserId(UUID customerId);
 
-    boolean existsByCustomerId(UUID customerId);
+    boolean existsByUserId(UUID customerId);
     boolean existsByAccountNumber(String accountNumber);
 
     Account findByAccountNumber(String accountNumber);

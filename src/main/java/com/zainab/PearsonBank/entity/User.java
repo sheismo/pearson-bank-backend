@@ -1,5 +1,6 @@
 package com.zainab.PearsonBank.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
@@ -18,8 +19,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "customers")
-public class Customer {
+@Table(name = "users")
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -40,14 +41,18 @@ public class Customer {
     private BigDecimal totalBalance;
 
     private boolean multipleAccounts;
+
+    @JsonIgnore
     private String transactionPin;
 
+    @JsonIgnore
     private String appPassword;
     private boolean emailVerified; // set to true after email verification
     private boolean profileEnabled; // set to true after initial password setup
     private LocalDateTime lastLoginDate;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Role role;
 
     private String resetPasswordToken;
@@ -64,21 +69,21 @@ public class Customer {
     @Column(name = "modified_at")
     private LocalDateTime modifiedAt;
 
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<Account> accounts = new ArrayList<>();
 
     public void addAccount(Account account) {
         accounts.add(account);
-        account.setCustomer(this);
+        account.setUser(this);
     }
 
     public void removeAccount(Account account) {
         accounts.remove(account);
-        account.setCustomer(null);
+        account.setUser(null);
     }
 
     public enum Role {
-        ROLE_USER, ROLE_ADMIN
+        ROLE_CUSTOMER, ROLE_ADMIN
     }
 }

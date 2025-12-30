@@ -14,7 +14,7 @@ public class AccountStatementRequest {
     @Schema(name = "Account Number")
     private String accountNumber;
 
-    @Schema(name = "Customer Id")
+    @Schema(name = "User Id")
     private String customerId;
 
     @Schema(name = "Start Date")

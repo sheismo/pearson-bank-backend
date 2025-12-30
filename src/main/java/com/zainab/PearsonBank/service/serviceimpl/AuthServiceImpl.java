@@ -1,11 +1,11 @@
 package com.zainab.PearsonBank.service.serviceimpl;
 
 import com.zainab.PearsonBank.dto.*;
-import com.zainab.PearsonBank.entity.Customer;
+import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.entity.EmailOtp;
 import com.zainab.PearsonBank.entity.UserSession;
 import com.zainab.PearsonBank.event.EmailEvent;
-import com.zainab.PearsonBank.repository.CustomerRepository;
+import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.repository.EmailOtpRepository;
 import com.zainab.PearsonBank.repository.SessionRepository;
 import com.zainab.PearsonBank.security.JwtTokenProvider;
@@ -24,7 +24,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -37,7 +36,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
     private final EmailOtpRepository otpRepository;
-    private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
     private final EmailService emailService;
     private final AccountHelper accountHelper;
@@ -60,31 +59,31 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public JwtResponse authenticateUser(LoginRequest loginRequest) {
-        Customer customer = customerRepository.findByEmail(loginRequest.getEmail())
-                .orElseThrow(() -> new RuntimeException("Customer not found!"));
+        User user = userRepository.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found!"));
 
-        if (!passwordEncoder.matches(loginRequest.getPassword(), customer.getAppPassword())) {
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getAppPassword())) {
             throw new RuntimeException("Invalid Password!");
         }
 
-        if (!customer.isProfileEnabled()) {
-            throw new RuntimeException("Customer profile is disabled!");
+        if (!user.isProfileEnabled()) {
+            throw new RuntimeException("User profile is disabled!");
         }
 
         String token = jwtTokenProvider.generateAccessToken(
-                new User(customer.getEmail(), customer.getAppPassword(),
-                        Collections.singletonList(new SimpleGrantedAuthority(customer.getRole().name())))
+                new org.springframework.security.core.userdetails.User(user.getEmail(), user.getAppPassword(),
+                        Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name())))
         );
 
-        String refreshToken = jwtTokenProvider.generateRefreshToken(customer.getEmail());
-        customer.setRefreshToken(refreshToken);
-        customer.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
-        customerRepository.save(customer);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+        user.setRefreshToken(refreshToken);
+        user.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
+        userRepository.save(user);
 
         LocalDateTime now = LocalDateTime.now();
 
         UserSession session = new UserSession();
-        session.setUserId(customer.getId());
+        session.setUserId(user.getId());
         session.setAccessToken(token);
         session.setRefreshToken(refreshToken);
         session.setLastActivity(now);
@@ -92,27 +91,28 @@ public class AuthServiceImpl implements AuthService {
         session.setExpiresAt(LocalDateTime.now().plusMinutes(20));
         sessionRepository.save(session);
 
-        return new JwtResponse(String.valueOf(customer.getId()), customer.getEmail(), customer.getRole(),  token, refreshToken, "Bearer ");
+        return new JwtResponse(String.valueOf(user.getId()), user.getEmail(), user.getRole(),
+                token, refreshToken, "Bearer ", LocalDateTime.now());
     }
 
     @Transactional
     @Override
     public void forgotPassword(ForgotPasswordRequest forgotPasswordRequest) {
-        Customer customer = customerRepository.findByEmail(forgotPasswordRequest.getEmail())
-                .orElseThrow(() -> new RuntimeException("Customer not found with this email: " + forgotPasswordRequest.getEmail()));
+        User user = userRepository.findByEmail(forgotPasswordRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found with this email: " + forgotPasswordRequest.getEmail()));
 
         try {
             String resetToken = generateResetToken();
-            customer.setResetPasswordToken(resetToken);
-            customer.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(24));
-            customerRepository.save(customer);
+            user.setResetPasswordToken(resetToken);
+            user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(24));
+            userRepository.save(user);
 
             String resetUrl = appBaseUrl + "/reset-password?token=" + resetToken;
 
             EmailDetails emailDetails = new EmailDetails();
             emailDetails.setSubject(EmailUtils.PASSWORD_RESET_EMAIL_SUBJECT.getTemplate());
-            emailDetails.setBody(EmailUtils.PASSWORD_RESET_EMAIL_BODY.format(customer.getFirstName(), resetUrl));
-            emailDetails.setRecipient(customer.getEmail());
+            emailDetails.setBody(EmailUtils.PASSWORD_RESET_EMAIL_BODY.format(user.getFirstName(), resetUrl));
+            emailDetails.setRecipient(user.getEmail());
 
             eventPublisher.publishEvent(new EmailEvent(emailDetails));
         } catch (Exception e) {
@@ -124,14 +124,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public TokenValidationResponse validateResetToken(String token) {
         try {
-            Customer customer = customerRepository.findByResetPasswordToken(token)
+            User user = userRepository.findByResetPasswordToken(token)
                     .orElseThrow(() -> new RuntimeException("Invalid reset token"));
 
-            if (customer.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+            if (user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
                 throw new RuntimeException("Reset token has expired");
             }
 
-            return new TokenValidationResponse("00", "Token Is Valid", true, customer.getEmail());
+            return new TokenValidationResponse("00", "Token Is Valid", true, user.getEmail());
         } catch (Exception e) {
             return new TokenValidationResponse("40", e.getMessage(), false, null);
         }
@@ -139,22 +139,22 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void resetPassword(ResetPasswordRequest resetPasswordRequest) {
-        Customer customer = customerRepository.findByResetPasswordToken(resetPasswordRequest.getToken())
+        User user = userRepository.findByResetPasswordToken(resetPasswordRequest.getToken())
                 .orElseThrow(() -> new RuntimeException("Invalid Reset Token!"));
 
-        if (customer.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Reset Token has expired!");
         }
 
         String hashedPassword = passwordEncoder.encode(resetPasswordRequest.getNewPassword());
-        if (customer.getAppPassword() != null && customer.getAppPassword().equals(hashedPassword)) {
+        if (user.getAppPassword() != null && user.getAppPassword().equals(hashedPassword)) {
             throw new RuntimeException("You cannot use old password!");
         }
 
-        customer.setAppPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
-        customer.setResetPasswordToken(null);
-        customer.setResetPasswordTokenExpiry(null);
-        customerRepository.save(customer);
+        user.setAppPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordTokenExpiry(null);
+        userRepository.save(user);
     }
 
     @Override
@@ -168,24 +168,24 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String email = jwtTokenProvider.extractUsername(refreshToken);
-        Customer customer = customerRepository.findByEmail(email)
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found!"));
 
-        if (!refreshToken.equals(customer.getRefreshToken())) {
+        if (!refreshToken.equals(user.getRefreshToken())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token mismatch!");
         }
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(email);
+        String newAccessToken = jwtTokenProvider.generateAccessToken(email, user.getRole());
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(email);
 
-        customer.setRefreshToken(refreshToken);
-        customer.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
-        customerRepository.save(customer);
+        user.setRefreshToken(refreshToken);
+        user.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
+        userRepository.save(user);
 
         LocalDateTime now = LocalDateTime.now();
 
         UserSession session = new UserSession();
-        session.setUserId(customer.getId());
+        session.setUserId(user.getId());
         session.setAccessToken(newAccessToken);
         session.setRefreshToken(newRefreshToken);
         session.setLastActivity(now);
@@ -197,7 +197,7 @@ public class AuthServiceImpl implements AuthService {
                 "token", newAccessToken,
                 "type", "Bearer",
                 "email", email,
-                "role", customer.getRole().name()
+                "role", user.getRole().name()
         ));
     }
 
@@ -256,16 +256,16 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String setAppPassword(String customerId, String password) {
-        Optional<Customer> oCustomer = customerRepository.findById(UUID.fromString(customerId));
-        if (oCustomer.isEmpty()) return "Customer Not Found";
+        Optional<User> oCustomer = userRepository.findById(UUID.fromString(customerId));
+        if (oCustomer.isEmpty()) return "User Not Found";
 
-        Customer customer = oCustomer.get();
+        User user = oCustomer.get();
         String hashedPassword = passwordEncoder.encode(password);
-        if(customer.getAppPassword() != null && customer.getAppPassword().equals(hashedPassword)) return "You cannot use your old password";
+        if(user.getAppPassword() != null && user.getAppPassword().equals(hashedPassword)) return "You cannot use your old password";
 
-        customer.setAppPassword(hashedPassword);
-        customer.setProfileEnabled(true);
-        customerRepository.save(customer);
+        user.setAppPassword(hashedPassword);
+        user.setProfileEnabled(true);
+        userRepository.save(user);
         return "Password set successfully!";
     }
 
@@ -284,24 +284,24 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean confirmAppPassword(String customerId, String password) {
-        Optional<Customer> oCustomer = customerRepository.findById(UUID.fromString(customerId));
+        Optional<User> oCustomer = userRepository.findById(UUID.fromString(customerId));
         if (oCustomer.isEmpty()) return false;
 
-        Customer customer = oCustomer.get();
-        return passwordEncoder.matches(password, customer.getAppPassword());
+        User user = oCustomer.get();
+        return passwordEncoder.matches(password, user.getAppPassword());
     }
 
     @Override
     public String setTransactionPin(String customerId, String transactionPin) {
-        Optional<Customer> oCustomer = customerRepository.findById(UUID.fromString(customerId));
-        if (oCustomer.isEmpty()) return "Customer Not Found";
+        Optional<User> oCustomer = userRepository.findById(UUID.fromString(customerId));
+        if (oCustomer.isEmpty()) return "User Not Found";
 
-        Customer customer = oCustomer.get();
+        User user = oCustomer.get();
         String hashedPin = passwordEncoder.encode(transactionPin);
-        if(customer.getTransactionPin() != null && customer.getTransactionPin().equals(hashedPin)) return "You cannot use your old pin";
+        if(user.getTransactionPin() != null && user.getTransactionPin().equals(hashedPin)) return "You cannot use your old pin";
 
-        customer.setTransactionPin(hashedPin);
-        customerRepository.save(customer);
+        user.setTransactionPin(hashedPin);
+        userRepository.save(user);
         return "Pin set successfully!";
     }
 
@@ -321,11 +321,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean confirmTransactionPin(String customerId, String transactionPin) {
-        Optional<Customer> oCustomer = customerRepository.findById(UUID.fromString(customerId));
+        Optional<User> oCustomer = userRepository.findById(UUID.fromString(customerId));
         if (oCustomer.isEmpty()) return false;
 
-        Customer customer = oCustomer.get();
-        return passwordEncoder.matches(transactionPin, customer.getTransactionPin());
+        User user = oCustomer.get();
+        return passwordEncoder.matches(transactionPin, user.getTransactionPin());
     }
 
     @Override
@@ -345,12 +345,12 @@ public class AuthServiceImpl implements AuthService {
                 sessionRepository.save(session);
             }
 
-            Customer customer = customerRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Customer not found!"));
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found!"));
 
-            customer.setRefreshToken(null);
-            customer.setRefreshTokenExpiry(null);
-            customerRepository.save(customer);
+            user.setRefreshToken(null);
+            user.setRefreshTokenExpiry(null);
+            userRepository.save(user);
 
             // You might want to add the access token to a blacklist here
             // For a more secure implementation
@@ -382,16 +382,16 @@ public class AuthServiceImpl implements AuthService {
                 sessionRepository.save(session);
             }
 
-            Customer customer = customerRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("Customer not found!"));
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new RuntimeException("User not found!"));
 
-            sessionRepository.revokeAllSessionsByUserId(customer.getId());
-            customer.setRefreshToken(null);
-            customer.setRefreshTokenExpiry(null);
-            customerRepository.save(customer);
+            sessionRepository.revokeAllSessionsByUserId(user.getId());
+            user.setRefreshToken(null);
+            user.setRefreshTokenExpiry(null);
+            userRepository.save(user);
 
             // Add a token version that gets incremented on password changes or full logout
-            //        customer.setTokenVersion(customer.getTokenVersion() + 1);
+            //        user.setTokenVersion(user.getTokenVersion() + 1);
             return ResponseEntity.ok(new AppResponse<>(AccountResponses.SUCCESS.getCode(), "Logged out of all devices successfully!",
                     null));
 

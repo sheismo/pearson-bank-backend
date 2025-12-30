@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -31,7 +32,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/set-password")
     public ResponseEntity<AppResponse<?>> setPassword(@RequestBody SetPasswordPinRequest setPasswordRequest, HttpServletRequest request) {
-        log.info("Incoming request to set app password for customer from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to set app password for user from ip {}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = setPasswordRequest.getCustomerId();
@@ -69,7 +70,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/change-password")
     public ResponseEntity<AppResponse<?>> changePassword(@RequestBody ChangePasswordPinRequest changePasswordRequest, HttpServletRequest request) {
-        log.info("Incoming request to change app password for customer from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to change app password for user from ip {}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = changePasswordRequest.getCustomerId();
@@ -107,9 +108,10 @@ public class AuthController {
 
     @Operation(summary = "Set Transaction Pin", description = "API endpoint to set user transaction pin for first time users")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/set-pin")
     public ResponseEntity<AppResponse<?>> setPin(@RequestBody SetPasswordPinRequest setPinRequest, HttpServletRequest request) {
-        log.info("Incoming request to set transaction pin for customer from ip{}", request.getRemoteAddr());
+        log.info("Incoming request to set transaction pin for user from ip{}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = setPinRequest.getCustomerId();
@@ -145,9 +147,10 @@ public class AuthController {
 
     @Operation(summary = "Change Transaction Pin", description = "API endpoint to change user transaction pin")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/change-pin")
     public ResponseEntity<AppResponse<?>> changePin(@RequestBody ChangePasswordPinRequest changePinRequest, HttpServletRequest request) {
-        log.info("Incoming request to change transaction pin for customer from ip{}", request.getRemoteAddr());
+        log.info("Incoming request to change transaction pin for user from ip{}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = changePinRequest.getCustomerId();

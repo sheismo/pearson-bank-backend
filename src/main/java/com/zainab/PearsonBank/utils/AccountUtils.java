@@ -18,7 +18,7 @@ public class AccountUtils {
         };
 
         boolean hasEmpty = Stream.of(fields).anyMatch(AccountUtils::isEmpty);
-        log.info("Customer Request has empty field?: {}", hasEmpty);
+        log.info("User Request has empty field?: {}", hasEmpty);
 
         return !hasEmpty;
     }

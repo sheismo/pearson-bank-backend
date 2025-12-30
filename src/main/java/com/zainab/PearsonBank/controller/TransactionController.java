@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,8 +32,9 @@ public class TransactionController {
     @Autowired
     AccountHelper accountHelper;
 
-    @Operation(summary = "Credit Account", description = "API endpoint to credit customer account")
+    @Operation(summary = "Credit Account", description = "API endpoint to credit user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/credit-account")
     public ResponseEntity<AppResponse<?>> creditAccount(@RequestBody CreditDebitRequest creditRequest, HttpServletRequest request){
         log.info("Incoming request to credit account: : {} from ip {}", creditRequest, request.getRemoteAddr());
@@ -54,8 +56,9 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Debit Account", description = "API endpoint to get a customer account")
+    @Operation(summary = "Debit Account", description = "API endpoint to get a user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/debit-account")
     public ResponseEntity<AppResponse<?>> debitAccount(@RequestBody CreditDebitRequest debitRequest, HttpServletRequest request){
         log.info("Incoming request to debit account: : {} from ip {}", debitRequest, request.getRemoteAddr());
@@ -77,13 +80,14 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Single Transfer", description = "API endpoint to transfer fundsg")
+    @Operation(summary = "Single Transfer", description = "API endpoint to transfer funds")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/single-transfer")
     public ResponseEntity<AppResponse<?>> singleTransfer(@RequestBody TransferRequest transferRequest, HttpServletRequest request){
         log.info("Incoming request to transfer funds from ip {}", request.getRemoteAddr());
 
-        // TODO validate transfer request method should be created in account helper (no empty, fields, amounts is valid, and customer exists
+        // TODO validate transfer request method should be created in account helper (no empty, fields, amounts is valid, and user exists
         if (!AccountUtils.validateTransferRequest(transferRequest) || !accountHelper.checkIfAmountIsValid(transferRequest.getAmount())
                 || !accountHelper.checkIfCustomerExistsById(transferRequest.getCustomerId())) {
 
@@ -102,13 +106,16 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Get Transactions ", description = "API endpoint to get transactions for customer")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/get-transactions")
     public ResponseEntity<AppResponse<?>> getTransactions(@RequestBody GetTransactionRequest getTransactionRequest, HttpServletRequest request){
-        log.info("Incoming request to get transaction for customer from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to get transaction for user from ip {}", request.getRemoteAddr());
 
         // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
-        // check if customer in the request owns the account passed
+        // check if the user id passed is same as user id of the logged-in user
+        // check if user in the request owns the account passed
 //        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
 
 
@@ -185,6 +192,9 @@ public class TransactionController {
         return ResponseEntity.internalServerError().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(), null));
     }
 
+    @Operation(summary = "Download Receipt", description = "API endpoint to download transaction receipt")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/download-receipt")
     public ResponseEntity<?> generateReceipt(@RequestBody ReceiptRequest receiptRequest, HttpServletRequest request) {
         log.info("Incoming request to get transaction receipt for from ip {}", request.getRemoteAddr());

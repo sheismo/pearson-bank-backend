@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,13 +32,13 @@ public class CustomerController {
     /**
      * @return AppResponse containing info about the api operation
      */
-    @Operation(summary = "Onboard New Customer", description = "API endpoint to create new account for a new user/customer")
+    @Operation(summary = "Onboard New Customer", description = "API endpoint to create new account for a new customer")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/onboard")
     // return, frontend moves to set up app password, after success save return ok response, frontend redirects to sign in
     // first time login pops up set transaction pin (if last login date s null)
     public ResponseEntity<AppResponse<?>> onboardCustomer(@RequestBody CustomerRequest customerRequest, HttpServletRequest request) {
-        log.info("Incoming request to create new customer account: {} from ip {}", customerRequest, request.getRemoteAddr());
+        log.info("Incoming request to create new user account: {} from ip {}", customerRequest, request.getRemoteAddr());
         AppResponse<?> response = null;
 
         if (!AccountUtils.validateCustomerRequest(customerRequest)) {
@@ -51,18 +52,18 @@ public class CustomerController {
         } catch (RuntimeException e) {
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Customer Onboarding Failed: " + e.getMessage())
+                    .responseMessage("User Onboarding Failed: " + e.getMessage())
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
         }
     }
 
-    @Operation(summary = "Verify Customer Email", description = "API endpoint to verify customer email ")
+    @Operation(summary = "Verify User Email", description = "API endpoint to verify user email ")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/verify-email")
     public ResponseEntity<AppResponse<?>> verifyCustomerEmail(@RequestBody Map<String, String> verifyEmailRequest, HttpServletRequest request) {
-        log.info("Incoming request to verify email for new customer from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to verify email for new user from ip {}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String emailAddress = verifyEmailRequest.get("email");
@@ -80,18 +81,18 @@ public class CustomerController {
         } catch(Exception e) {
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Customer Onboarding Failed: " + e.getMessage())
+                    .responseMessage("User Onboarding Failed: " + e.getMessage())
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
         }
     }
 
-    @Operation(summary = "Create Account For Customer", description = "API endpoint to create account for customer")
+    @Operation(summary = "Create Account For User", description = "API endpoint to create account for user")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/create-account")
     public ResponseEntity<AppResponse<?>> createAccount(@RequestBody Map<String, String> createAccountRequest, HttpServletRequest request) {
-        log.info("Incoming request to create new customer account from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to create new user account from ip {}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String emailAddress = createAccountRequest.get("email");
@@ -115,8 +116,9 @@ public class CustomerController {
         }
     }
 
-    @Operation(summary = "Balance Enquiry", description = "API endpoint to check customer account balance")
+    @Operation(summary = "Balance Enquiry", description = "API endpoint to check user account balance")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER') and @accountSecurity.accountBelongsToUser(authentication, #enquiryRequest.accountNumber) ")
     @PostMapping("/balance-enquiry")
     public ResponseEntity<AppResponse<?>> getCustomerBalance(@RequestBody EnquiryRequest enquiryRequest, HttpServletRequest request) {
         log.info("Incoming request to get account balance: {} from ip {}", enquiryRequest, request.getRemoteAddr());
@@ -134,8 +136,9 @@ public class CustomerController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Name Enquiry", description = "API endpoint to get customer account name")
+    @Operation(summary = "Name Enquiry", description = "API endpoint to get user account name")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/name-enquiry")
     public ResponseEntity<AppResponse<Object>> getCustomerName(@RequestBody EnquiryRequest enquiryRequest, HttpServletRequest request) {
         log.info("Incoming request to get account name: {} from ip {}", enquiryRequest, request.getRemoteAddr());
