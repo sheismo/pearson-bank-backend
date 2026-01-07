@@ -10,7 +10,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class MapperClass {
-    private AccountHelper accountHelper;
+    private final AccountHelper accountHelper;
+
+    public MapperClass(AccountHelper accountHelper) {
+        this.accountHelper = accountHelper;
+    }
 
     public AccountDetails getAccountDetails(Account account) {
         AccountDetails dto = new AccountDetails();
@@ -37,6 +41,23 @@ public class MapperClass {
         dto.setLocation(user.getState() + ", " + user.getCountry());
         dto.setNoOfAccounts(user.getNoOfAccounts());
         dto.setTotalBalance(user.getTotalBalance());
+        dto.setPrimaryAccountNumber(user.getAccounts().get(0).getAccountNumber());
+
+        return dto;
+    }
+
+    public CustomerDetails getCustomerDetails(User user, String accountNo) {
+        CustomerDetails dto = new CustomerDetails();
+        dto.setFullName(accountHelper.getCustomerFullName(user));
+        dto.setEmail(user.getEmail());
+        dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setAlternativePhoneNumber(user.getAlternativePhoneNumber());
+        dto.setGender(user.getGender());
+        dto.setAddress(user.getAddress());
+        dto.setLocation(user.getState() + ", " + user.getCountry());
+        dto.setNoOfAccounts(user.getNoOfAccounts());
+        dto.setTotalBalance(user.getTotalBalance());
+        dto.setPrimaryAccountNumber(accountNo);
 
         return dto;
     }

@@ -4,6 +4,7 @@ import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.AccountResponses;
+import com.zainab.PearsonBank.utils.PasswordGenerator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +29,30 @@ public class AuthController {
     @Autowired
     AccountHelper accountHelper;
 
+    @Autowired
+    PasswordGenerator passwordGenerator;
+
+    @Operation(summary = "Login", description = "API endpoint to login user ")
+    @ApiResponse(responseCode = "200", description = "Login successful!")
+    @PostMapping("/login")
+    public ResponseEntity<AppResponse<?>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        log.info("Incoming request to login user from ip{}", request.getRemoteAddr());
+        AppResponse<?> response = null;
+
+        try {
+            JwtResponse res = authService.authenticateUser(loginRequest);
+            response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed to login: " + e.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
     @Operation(summary = "Set App Password", description = "API endpoint to set user app password for first time users")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/set-password")
@@ -46,7 +71,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (appPassword.length() < 8) { // password must be 8 or more characters
+        if (appPassword.length() < 12 || passwordGenerator.isValidPassword(appPassword)) { // password must be 8 or more characters
             log.error("Invalid Request::::");
             response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Password length is invalid");
             return ResponseEntity.badRequest().body(response);
@@ -180,27 +205,6 @@ public class AuthController {
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
                     .responseMessage("Failed to set transaction pin: " + e.getMessage())
-                    .data(null)
-                    .build();
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
-
-    @Operation(summary = "Login", description = "API endpoint to login user ")
-    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PostMapping("/login")
-    public ResponseEntity<AppResponse<?>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
-        log.info("Incoming request to login user from ip{}", request.getRemoteAddr());
-        AppResponse<?> response = null;
-
-        try {
-            JwtResponse res = authService.authenticateUser(loginRequest);
-            response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            response = AppResponse.builder()
-                    .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to login: " + e.getMessage())
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);

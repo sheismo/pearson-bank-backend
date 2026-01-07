@@ -1,5 +1,6 @@
 package com.zainab.PearsonBank.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomerDetails {
+    @JsonIgnore
     @Schema(name = "User Id")
     private UUID id;
 
@@ -43,4 +45,7 @@ public class CustomerDetails {
 
     @Schema(name = "Total Balance")
     private BigDecimal totalBalance;
+
+    @Schema(name = "Primary Account Number")
+    private String primaryAccountNumber;
 }

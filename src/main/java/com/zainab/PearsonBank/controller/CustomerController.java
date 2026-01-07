@@ -35,8 +35,6 @@ public class CustomerController {
     @Operation(summary = "Onboard New Customer", description = "API endpoint to create new account for a new customer")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/onboard")
-    // return, frontend moves to set up app password, after success save return ok response, frontend redirects to sign in
-    // first time login pops up set transaction pin (if last login date s null)
     public ResponseEntity<AppResponse<?>> onboardCustomer(@RequestBody CustomerRequest customerRequest, HttpServletRequest request) {
         log.info("Incoming request to create new user account: {} from ip {}", customerRequest, request.getRemoteAddr());
         AppResponse<?> response = null;
@@ -107,9 +105,12 @@ public class CustomerController {
             response = customerService.createAccountForCustomer(emailAddress);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.info("Account Creation Failed: {}", e.getMessage(), e.getCause());
+            e.printStackTrace();
+
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Account Creation Failed: " + e.getMessage())
+                    .responseMessage("Error occurred: Account Creation Failed")
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);

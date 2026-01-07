@@ -11,19 +11,19 @@ import com.zainab.PearsonBank.service.CustomerService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
 import com.zainab.PearsonBank.types.CurrencyType;
-import com.zainab.PearsonBank.utils.AccountHelper;
-import com.zainab.PearsonBank.utils.AccountResponses;
-import com.zainab.PearsonBank.utils.EmailUtils;
+import com.zainab.PearsonBank.utils.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,15 +37,15 @@ public class CustomerServiceImpl implements CustomerService  {
     private final TransactionService transactionService;
     private final AuthService credentialService;
     private final AccountHelper accountHelper;
+    private final MapperClass mapperClass;
+    private final PasswordGenerator passwordGenerator;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
     @Value("${app.name}")
     private String appName;
-
-    @Value("${app.supportMail}")
-    private String appSupportMail;
 
     /**
      * To onboard a new user:
@@ -131,10 +131,13 @@ public class CustomerServiceImpl implements CustomerService  {
                 .build();
     }
 
+    @Transactional
     @Override
     public AppResponse<?> createAccountForCustomer(String emailAddress) {
         Optional<User> oCustomer = userRepository.findByEmail(emailAddress);
+
         if (oCustomer.isEmpty()) {
+            log.info("customer not found");
             return AppResponse.builder()
                     .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
                     .responseMessage(AccountResponses.CUSTOMER_NOT_FOUND.getMessage())
@@ -182,22 +185,28 @@ public class CustomerServiceImpl implements CustomerService  {
                 .build();
         Account savedAccount = accountRepository.save(newAccount);
 
+        String defaultPassword = passwordGenerator.generatePassword();
+        user.setAppPassword(passwordEncoder.encode(defaultPassword));
+        user.setDefaultPassword(true);
+        user.setDefaultPasswordIssuedAt(LocalDateTime.now());
         user.setNoOfAccounts(user.getNoOfAccounts() + 1);
+        user.setProfileEnabled(true);
         userRepository.save(user);
 
         // send email to user
         EmailDetails emailDetails = new EmailDetails();
         emailDetails.setSubject(EmailUtils.NEW_CUSTOMER_EMAIL_SUBJECT.getTemplate());
         emailDetails.setBody(EmailUtils.NEW_CUSTOMER_EMAIL_BODY
-                                     .format(appName, user.getFirstName() + " " + user.getLastName(), savedAccount.getAccountNumber()));
+                                     .format(appName, user.getFirstName() + " " + user.getLastName(), savedAccount.getAccountNumber(),
+                                             defaultPassword));
         emailDetails.setRecipient(user.getEmail());
         eventPublisher.publishEvent(new EmailEvent(emailDetails));
 
-        log.info("Onboarding mail sent to user email - {}:::", user.getEmail());
+        log.info("Sending onboarding mail to user - {}:::", user.getEmail());
         return AppResponse.builder()
                 .responseCode(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getCode())
                 .responseMessage(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getMessage())
-                .data(user)
+                .data(mapperClass.getCustomerDetails(user, accountNumber))
                 .build();
     }
 

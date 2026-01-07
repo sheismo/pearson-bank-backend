@@ -18,4 +18,5 @@ public class JwtResponse {
     private String refreshToken;
     private String type = "Bearer";
     private LocalDateTime loginTime;
+    private boolean isFirstTimeLogin;
 }

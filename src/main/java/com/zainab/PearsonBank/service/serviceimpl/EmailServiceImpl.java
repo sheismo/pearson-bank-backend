@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.retry.annotation.Backoff;
@@ -34,10 +33,10 @@ public class EmailServiceImpl implements EmailService {
     @Autowired
     private FailedEmailRepository failedEmailRepository;
 
-    @Value("${spring.mail.username}")
+    @Value("${app.generalMail}")
     private String senderEmail;
 
-    @Value("${appMailName}")
+    @Value("${app.name}")
     private String senderName;
 
     @Async
@@ -52,7 +51,6 @@ public class EmailServiceImpl implements EmailService {
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
             helper.setFrom(senderEmail, senderName);
             helper.setTo(emailDetails.getRecipient());
             helper.setSubject(emailDetails.getSubject());
@@ -82,6 +80,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper mimeMessageHelper = new MimeMessageHelper(message, true, "UTF-8");
 
             mimeMessageHelper.setFrom(senderEmail, senderName);
+            mimeMessageHelper.setFrom("Pearson Bank <no-reply@pearsonbank.com>");
             mimeMessageHelper.setTo(emailDetails.getRecipient());
             mimeMessageHelper.setSubject(emailDetails.getSubject());
             mimeMessageHelper.setText(emailDetails.getBody(), true);

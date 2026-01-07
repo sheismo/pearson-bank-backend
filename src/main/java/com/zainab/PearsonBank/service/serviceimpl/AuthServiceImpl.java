@@ -70,17 +70,25 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("User profile is disabled!");
         }
 
+        if (user.isDefaultPassword() && user.getDefaultPasswordIssuedAt()
+                .isBefore(LocalDateTime.now().minusHours(24))) {
+            throw new RuntimeException("Default password expired. Please reset your password!");
+        }
+
         String token = jwtTokenProvider.generateAccessToken(
                 new org.springframework.security.core.userdetails.User(user.getEmail(), user.getAppPassword(),
                         Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name())))
         );
 
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
-        user.setRefreshToken(refreshToken);
-        user.setRefreshTokenExpiry(LocalDateTime.now().plusDays(7));
-        userRepository.save(user);
 
         LocalDateTime now = LocalDateTime.now();
+        boolean isFirstTimeLogin = user.isDefaultPassword() && user.getLastLoginDate() == null;
+
+        user.setRefreshToken(refreshToken);
+        user.setRefreshTokenExpiry(now.plusDays(7));
+        user.setLastLoginDate(now);
+        userRepository.save(user);
 
         UserSession session = new UserSession();
         session.setUserId(user.getId());
@@ -88,11 +96,11 @@ public class AuthServiceImpl implements AuthService {
         session.setRefreshToken(refreshToken);
         session.setLastActivity(now);
         session.setCreatedAt(now);
-        session.setExpiresAt(LocalDateTime.now().plusMinutes(20));
+        session.setExpiresAt(now.plusMinutes(20));
         sessionRepository.save(session);
 
         return new JwtResponse(String.valueOf(user.getId()), user.getEmail(), user.getRole(),
-                token, refreshToken, "Bearer ", LocalDateTime.now());
+                token, refreshToken, "Bearer ", now, isFirstTimeLogin);
     }
 
     @Transactional
@@ -261,10 +269,11 @@ public class AuthServiceImpl implements AuthService {
 
         User user = oCustomer.get();
         String hashedPassword = passwordEncoder.encode(password);
-        if(user.getAppPassword() != null && user.getAppPassword().equals(hashedPassword)) return "You cannot use your old password";
+        if(!user.isDefaultPassword()) return "Invalid Request: use Change Password option to change your password!";
+        if(user.getAppPassword() != null && user.getAppPassword().equals(hashedPassword)) return "You cannot use your old password!";
 
         user.setAppPassword(hashedPassword);
-        user.setProfileEnabled(true);
+        user.setDefaultPassword(false);
         userRepository.save(user);
         return "Password set successfully!";
     }
@@ -298,7 +307,8 @@ public class AuthServiceImpl implements AuthService {
 
         User user = oCustomer.get();
         String hashedPin = passwordEncoder.encode(transactionPin);
-        if(user.getTransactionPin() != null && user.getTransactionPin().equals(hashedPin)) return "You cannot use your old pin";
+        if(!user.isDefaultPassword()) return "Invalid Request: use Change Pin option to change your transaction pin!";
+        if(user.getTransactionPin() != null && user.getTransactionPin().equals(hashedPin)) return "You cannot use your old pin!";
 
         user.setTransactionPin(hashedPin);
         userRepository.save(user);

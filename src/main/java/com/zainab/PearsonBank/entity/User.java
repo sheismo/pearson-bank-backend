@@ -47,6 +47,13 @@ public class User {
 
     @JsonIgnore
     private String appPassword;
+
+    @JsonIgnore
+    private boolean isDefaultPassword;
+
+    @JsonIgnore
+    private LocalDateTime defaultPasswordIssuedAt;
+
     private boolean emailVerified; // set to true after email verification
     private boolean profileEnabled; // set to true after initial password setup
     private LocalDateTime lastLoginDate;
