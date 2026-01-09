@@ -22,8 +22,8 @@ public class CreditDebitRequest {
     @DecimalMin(value = "0.01", message = "Amount must be greater than 0")
     private BigDecimal amount;
 
-    @Schema(name = "Customer Id")
-    @NotNull(message = "Customer Id is required")
+    @Schema(name = "User Id")
+    @NotNull(message = "User Id is required")
     private UUID customerId;
 
     @Schema(name = "Narration")

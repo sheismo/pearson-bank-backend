@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransactionPinRequest {
-    @Schema(name = "Customer ID")
+    @Schema(name = "User ID")
     private String customerId;
 
     @Schema(name = "Pin")

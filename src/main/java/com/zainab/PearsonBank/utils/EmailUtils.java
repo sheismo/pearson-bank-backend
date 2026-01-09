@@ -22,6 +22,11 @@ public enum EmailUtils {
                     We are glad to have you on board and can't wait to go on a really exciting financial journey with you!
                   </p>
                  \s
+                   <p style="font-size: 14px;">
+                     Your default password is: (<strong>%s</strong>) , and it will expire in 24 hours.
+                     Please login to the app within the next 24 hours and set up your password and transaction pin.
+                   </p>
+                  \s
                   <p style="font-size: 14px; margin-top: 20px;">
                     From all of us at <strong>Pearson Bank</strong>.
                   </p>

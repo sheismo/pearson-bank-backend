@@ -4,6 +4,7 @@ import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.AccountResponses;
+import com.zainab.PearsonBank.utils.PasswordGenerator;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,6 +13,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -27,11 +29,35 @@ public class AuthController {
     @Autowired
     AccountHelper accountHelper;
 
+    @Autowired
+    PasswordGenerator passwordGenerator;
+
+    @Operation(summary = "Login", description = "API endpoint to login user ")
+    @ApiResponse(responseCode = "200", description = "Login successful!")
+    @PostMapping("/login")
+    public ResponseEntity<AppResponse<?>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        log.info("Incoming request to login user from ip{}", request.getRemoteAddr());
+        AppResponse<?> response = null;
+
+        try {
+            JwtResponse res = authService.authenticateUser(loginRequest);
+            response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed to login: " + e.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
     @Operation(summary = "Set App Password", description = "API endpoint to set user app password for first time users")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/set-password")
     public ResponseEntity<AppResponse<?>> setPassword(@RequestBody SetPasswordPinRequest setPasswordRequest, HttpServletRequest request) {
-        log.info("Incoming request to set app password for customer from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to set app password for user from ip {}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = setPasswordRequest.getCustomerId();
@@ -40,14 +66,15 @@ public class AuthController {
         setPasswordRequest.setIpAddress(request.getRemoteAddr());
 
         if (appPassword == null || appPassword.isEmpty() ||  customerId == null || customerId.isEmpty() || accountHelper.hasSetAppPassword(customerId) ) {
-            log.error("Invalid Request::::");
+            log.error("Invalid Request - Issue with input fields or user already set password::::");
             response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null);
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (appPassword.length() < 8) { // password must be 8 or more characters
+        if (appPassword.length() < 12 || !passwordGenerator.isValidPassword(appPassword)) { // password must be 12 or more characters, uppercase, lowercase, digit, symbol)
             log.error("Invalid Request::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Password length is invalid");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage() + " - Password length is invalid",
+                    "Password must be at least 12 characters,and should contain at least 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.");
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -69,7 +96,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PostMapping("/change-password")
     public ResponseEntity<AppResponse<?>> changePassword(@RequestBody ChangePasswordPinRequest changePasswordRequest, HttpServletRequest request) {
-        log.info("Incoming request to change app password for customer from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to change app password for user from ip {}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = changePasswordRequest.getCustomerId();
@@ -85,9 +112,15 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (oldPassword.length() < 8 || newPassword.length() < 8) { // password must be 8 or more characters
-            log.error("Invalid Request - length is less than 8::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Password length is invalid!");
+        if (oldPassword.equals(newPassword)) {
+            log.error("Invalid Request - Old Password is the same as New Password::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Old Password cannot be the same as New Password!");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (newPassword.length() < 12 || !passwordGenerator.isValidPassword(newPassword)) { // password must be 8 or more characters
+            log.error("Invalid Request - password does not meet complexity requirements::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Password does not meet complexity requirements!");
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -98,7 +131,7 @@ public class AuthController {
         } catch (Exception e) {
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to set app password: " + e.getMessage())
+                    .responseMessage("Failed to change app password: " + e.getMessage())
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
@@ -107,9 +140,10 @@ public class AuthController {
 
     @Operation(summary = "Set Transaction Pin", description = "API endpoint to set user transaction pin for first time users")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/set-pin")
     public ResponseEntity<AppResponse<?>> setPin(@RequestBody SetPasswordPinRequest setPinRequest, HttpServletRequest request) {
-        log.info("Incoming request to set transaction pin for customer from ip{}", request.getRemoteAddr());
+        log.info("Incoming request to set transaction pin for user from ip{}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = setPinRequest.getCustomerId();
@@ -123,9 +157,9 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (transactionPin.length() != 4) { // pin must be exactly 4 characters
-            log.error("Invalid Request:::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin length is invalid");
+        if (transactionPin.length() != 4 || !passwordGenerator.isValidPin(transactionPin)) { // pin must be exactly 4 characters
+            log.error("Invalid Request - Pin must be 4 digits:::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin must be 4 digits");
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -145,9 +179,10 @@ public class AuthController {
 
     @Operation(summary = "Change Transaction Pin", description = "API endpoint to change user transaction pin")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/change-pin")
     public ResponseEntity<AppResponse<?>> changePin(@RequestBody ChangePasswordPinRequest changePinRequest, HttpServletRequest request) {
-        log.info("Incoming request to change transaction pin for customer from ip{}", request.getRemoteAddr());
+        log.info("Incoming request to change transaction pin for user from ip{}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
         String customerId = changePinRequest.getCustomerId();
@@ -159,13 +194,19 @@ public class AuthController {
         if (oldTransactionPin == null || oldTransactionPin.isEmpty() ||  newTransactionPin == null || newTransactionPin.isEmpty() ||
                 customerId == null || customerId.isEmpty() || !accountHelper.hasSetTransactionPin(customerId)) {
             log.error("Invalid Request - empty parameters:::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Invalid Request");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Invalid Request - empty parameters");
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (oldTransactionPin.length() != 4 || newTransactionPin.length() != 4) { // pin must be exactly 4 characters
-            log.error("Invalid Request - pin length is invalid:::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin length is invalid");
+        if (oldTransactionPin.equals(newTransactionPin)) {
+            log.error("Invalid Request - Old Pin cannot be the same as New Pin:::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Old Pin cannot be the same as New Pin!");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (newTransactionPin.length() != 4 || !passwordGenerator.isValidPin(newTransactionPin)) {
+            log.error("Invalid Request - Pin does not meet complexity requirement:::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin does not meet complexity requirement");
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -177,27 +218,6 @@ public class AuthController {
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
                     .responseMessage("Failed to set transaction pin: " + e.getMessage())
-                    .data(null)
-                    .build();
-            return ResponseEntity.internalServerError().body(response);
-        }
-    }
-
-    @Operation(summary = "Login", description = "API endpoint to login user ")
-    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PostMapping("/login")
-    public ResponseEntity<AppResponse<?>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
-        log.info("Incoming request to login user from ip{}", request.getRemoteAddr());
-        AppResponse<?> response = null;
-
-        try {
-            JwtResponse res = authService.authenticateUser(loginRequest);
-            response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            response = AppResponse.builder()
-                    .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to login: " + e.getMessage())
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);

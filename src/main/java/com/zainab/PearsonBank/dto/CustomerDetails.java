@@ -1,5 +1,6 @@
 package com.zainab.PearsonBank.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,10 +15,11 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CustomerDetails {
-    @Schema(name = "Customer Id")
+    @JsonIgnore
+    @Schema(name = "User Id")
     private UUID id;
 
-    @Schema(name = "Customer Name")
+    @Schema(name = "User Name")
     private String fullName;
 
     @Schema(name = "Gender")
@@ -26,11 +28,8 @@ public class CustomerDetails {
     @Schema(name = "Home Address")
     private String address;
 
-    @Schema(name = "Country")
-    private String country;
-
-    @Schema(name = "State")
-    private String state;
+    @Schema(name = "Location")
+    private String location;
 
     @Schema(name = "Email Address")
     private String email;
@@ -44,6 +43,12 @@ public class CustomerDetails {
     @Schema(name = "No of Accounts")
     private int noOfAccounts;
 
+    @Schema(name = "Primary Account Number")
+    private String primaryAccountNumber;
+
     @Schema(name = "Total Balance")
     private BigDecimal totalBalance;
+
+    @Schema(name = "Profile Enabled")
+    private boolean profileEnabled;
 }

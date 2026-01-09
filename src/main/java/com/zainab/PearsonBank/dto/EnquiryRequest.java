@@ -9,9 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class EnquiryRequest {
-    @Schema(name = "Customer Account Number")
+    @Schema(name = "User Account Number")
     private String accountNumber;
 
-    @Schema(name = "Customer Id")
+    @Schema(name = "User Id")
     private String customerId;
 }

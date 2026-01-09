@@ -13,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,11 +29,12 @@ public class AccountController {
     @Autowired
     AccountService accountService;
 
-    @Operation(summary = "Get Customer Account", description = "API endpoint to get a customer account")
+    @Operation(summary = "Get User Account", description = "API endpoint to get a user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/get-account")
     public ResponseEntity<AppResponse<?>> getCustomerAccount(@RequestBody Map<String, String> payload, HttpServletRequest request) {
-        log.info("Incoming request to get customer account from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to get user account from ip {}", request.getRemoteAddr());
         String accountId = payload.get("accountId");
         String channel = payload.get("channel");
         log.info("Account is in request is: {} - channel is {}", accountId, channel);
@@ -49,11 +51,12 @@ public class AccountController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get Customer Accounts", description = "API endpoint to get a list of all customer accounts")
+    @Operation(summary = "Get User Accounts", description = "API endpoint to get a list of all user accounts")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/get-accounts")
     public ResponseEntity<AppResponse<?>> getCustomerAccounts(@RequestBody GetAccountsRequest accountsRequest, HttpServletRequest request) {
-        log.info("Incoming request to get customer accounts name: {} from ip {}", accountsRequest, request.getRemoteAddr());
+        log.info("Incoming request to get user accounts name: {} from ip {}", accountsRequest, request.getRemoteAddr());
 
         if (accountsRequest.getCustomerId() == null || accountsRequest.getCustomerId().isEmpty()) {
             AppResponse<?> response = AppResponse.builder()
@@ -67,11 +70,12 @@ public class AccountController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get Customer Account Statement", description = "API endpoint to get account statement")
+    @Operation(summary = "Get User Account Statement", description = "API endpoint to get account statement")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/get-account-statement")
     public ResponseEntity<?> getAccountStatement(@RequestBody AccountStatementRequest accountStatementRequest, HttpServletRequest request) {
-        log.info("Incoming request to get customer account statement: {} from ip {}", accountStatementRequest, request.getRemoteAddr());
+        log.info("Incoming request to get user account statement: {} from ip {}", accountStatementRequest, request.getRemoteAddr());
 
         String customerId = accountStatementRequest.getCustomerId();
         String accountNumber = accountStatementRequest.getAccountNumber();
@@ -97,6 +101,7 @@ public class AccountController {
 
     @Operation(summary = "Delete Account", description = "API endpoint to get delete account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/delete-account")
     public ResponseEntity<AppResponse<?>> deleteAccount(@RequestBody DeleteAccountRequest deleteAccountRequest, HttpServletRequest request) {
         log.info("Incoming request to delete account wih id {} from ip {}", deleteAccountRequest.getAccountId(), request.getRemoteAddr());

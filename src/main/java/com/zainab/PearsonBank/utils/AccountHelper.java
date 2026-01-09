@@ -3,9 +3,9 @@ package com.zainab.PearsonBank.utils;
 import com.zainab.PearsonBank.dto.AccountDetails;
 import com.zainab.PearsonBank.dto.CustomerDetails;
 import com.zainab.PearsonBank.entity.Account;
-import com.zainab.PearsonBank.entity.Customer;
+import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.repository.AccountRepository;
-import com.zainab.PearsonBank.repository.CustomerRepository;
+import com.zainab.PearsonBank.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -21,11 +21,11 @@ import java.util.UUID;
 @Slf4j
 public class AccountHelper {
 
-    private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final AccountRepository accountRepository;
 
-    public AccountHelper(CustomerRepository customerRepository, AccountRepository accountRepository) {
-        this.customerRepository = customerRepository;
+    public AccountHelper(UserRepository userRepository, AccountRepository accountRepository) {
+        this.userRepository = userRepository;
         this.accountRepository = accountRepository;
     }
 
@@ -85,12 +85,12 @@ public class AccountHelper {
     }
 
     public String getCustomerFullName(UUID customerId) {
-        return customerRepository.findById(customerId)
+        return userRepository.findById(customerId)
                 .map(c -> c.getFirstName() + " " + c.getOtherName() + " " + c.getLastName())
                 .orElse(null);
     }
 
-    public String getCustomerFullName(Customer c) {
+    public String getCustomerFullName(User c) {
         if (c != null) return c.getFirstName() + " " + c.getOtherName() + " " + c.getLastName();
         return null;
     }
@@ -103,43 +103,42 @@ public class AccountHelper {
 
         return AccountDetails.builder()
                 .accountId(account.getId())
-                .ownerId(account.getCustomer().getId())
+                .ownerId(account.getUser().getId())
                 .accountNumber(account.getAccountNumber())
-                .accountName(getCustomerFullName(account.getCustomer()))
+                .accountName(getCustomerFullName(account.getUser()))
                 .accountBalance(account.getAccountBalance())
                 .accountCurrency(account.getAccountCurrency())
                 .accountStatus(account.getAccountStatus())
-                .linkedEmail(account.getCustomer().getEmail())
-                .linkedPhone(account.getCustomer().getPhoneNumber())
+                .linkedEmail(account.getUser().getEmail())
+                .linkedPhone(account.getUser().getPhoneNumber())
                 .build();
     }
 
     public CustomerDetails fetchCustomerDetails(String customerId) {
-        Customer customer =  customerRepository.findById(UUID.fromString(customerId))
+        User user =  userRepository.findById(UUID.fromString(customerId))
                 .orElseThrow(RuntimeException::new);
 
-        if (customer == null) return null;
+        if (user == null) return null;
 
         return CustomerDetails.builder()
-                .id(customer.getId())
-                .fullName(getCustomerFullName(customer))
-                .email(customer.getEmail())
-                .gender(customer.getGender())
-                .address(customer.getAddress())
-                .phoneNumber(customer.getPhoneNumber())
-                .state(customer.getState())
-                .country(customer.getCountry())
-                .noOfAccounts(customer.getNoOfAccounts())
-                .totalBalance(customer.getTotalBalance())
+                .id(user.getId())
+                .fullName(getCustomerFullName(user))
+                .email(user.getEmail())
+                .gender(user.getGender())
+                .address(user.getAddress())
+                .phoneNumber(user.getPhoneNumber())
+                .location(user.getState() + ", " + user.getCountry())
+                .noOfAccounts(user.getNoOfAccounts())
+                .totalBalance(user.getTotalBalance())
                 .build();
     }
 
     public boolean checkIfCustomerExistsByEmail(String customerEmail) {
-        return customerRepository.existsByEmail(customerEmail);
+        return userRepository.existsByEmail(customerEmail);
     }
 
     public boolean checkIfCustomerExistsById(String customerId) {
-        return customerRepository.existsById(UUID.fromString(customerId));
+        return userRepository.existsById(UUID.fromString(customerId));
     }
 
     public boolean checkIfAccountExists(String accountNumber) {
@@ -151,46 +150,46 @@ public class AccountHelper {
     }
 
     public boolean checkIfCustomerHasAnAccount(UUID customerId) {
-        return accountRepository.existsByCustomerId(customerId);
+        return accountRepository.existsByUserId(customerId);
     }
 
     public boolean checkIfAccountBelongsToCustomer(String customerId, String accountNumber) {
         Account account = accountRepository.findByAccountNumber(accountNumber);
         if (account == null) return false;
 
-        return account.getCustomer().getId().equals(UUID.fromString(customerId));
+        return account.getUser().getId().equals(UUID.fromString(customerId));
     }
 
     public boolean checkIfCustomerIsVerified(String emailAddress) {
-        Customer customer =  customerRepository.findByEmail(emailAddress)
+        User user =  userRepository.findByEmail(emailAddress)
                 .orElseThrow(RuntimeException::new);
 
-        if (customer == null) return false;
-        return customer.isEmailVerified();
+        if (user == null) return false;
+        return user.isEmailVerified();
     }
 
     public boolean checkIfCustomerIsLocked(String emailAddress) {
-        Customer customer =  customerRepository.findByEmail(emailAddress)
+        User user =  userRepository.findByEmail(emailAddress)
                 .orElseThrow(RuntimeException::new);
 
-        if (customer == null) return false;
-        return customer.isProfileEnabled();
+        if (user == null) return false;
+        return user.isProfileEnabled();
     }
 
     public boolean hasSetTransactionPin(String customerId) {
-        Customer customer =  customerRepository.findById(UUID.fromString(customerId))
+        User user =  userRepository.findById(UUID.fromString(customerId))
                 .orElseThrow(RuntimeException::new);
 
-        if (customer == null) return false;
-        return !(customer.getTransactionPin() == null);
+        if (user == null) return false;
+        return !(user.getTransactionPin() == null);
     }
 
     public boolean hasSetAppPassword(String customerId) {
-        Customer customer = customerRepository.findById(UUID.fromString(customerId))
+        User user = userRepository.findById(UUID.fromString(customerId))
                 .orElseThrow(RuntimeException::new);
 
-        if (customer == null) return false;
-        return !(customer.getAppPassword() == null);
+        if (user == null) return false;
+        return !user.isDefaultPassword();
     }
 
     public boolean checkIfAccountIsActive(String accountNumber) {

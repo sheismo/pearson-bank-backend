@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ChangePasswordPinRequest {
-    @Schema(name = "Customer Id")
+    @Schema(name = "User Id")
     private String customerId;
 
     @Schema(name = "Old Password/Pin")

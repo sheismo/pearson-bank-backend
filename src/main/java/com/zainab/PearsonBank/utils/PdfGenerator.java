@@ -87,14 +87,14 @@ public class PdfGenerator {
             detailsTable.setSpacingAfter(25f);
             detailsTable.setWidths(new int[]{1, 1});
 
-            // Left column - Customer details
+            // Left column - User details
             PdfPCell customerSection = new PdfPCell();
             customerSection.setBorder(Rectangle.NO_BORDER);
             customerSection.setPadding(15f);
             customerSection.setBackgroundColor(lightGray);
 
             Paragraph customerInfo = new Paragraph();
-            customerInfo.add(new Chunk("Customer Information\n", labelFont));
+            customerInfo.add(new Chunk("User Information\n", labelFont));
             customerInfo.add(new Chunk("\n"));
             customerInfo.add(new Chunk("Name: ", labelFont));
             customerInfo.add(new Chunk(customer.getFullName() + "\n", valueFont));
@@ -272,7 +272,10 @@ public class PdfGenerator {
             titleCell.setAlignment(Element.ALIGN_CENTER);
             headerCell.addElement(titleCell);
 
-            Paragraph dateCell = new Paragraph(txn.getCreatedDate().toString(), smallFont);
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
+            String date = txn.getCreatedDate().format(dtf);
+
+            Paragraph dateCell = new Paragraph(date, smallFont);
             dateCell.setAlignment(Element.ALIGN_LEFT);
             headerCell.addElement(dateCell);
 

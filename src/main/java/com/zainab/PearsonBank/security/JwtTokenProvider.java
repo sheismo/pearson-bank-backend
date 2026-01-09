@@ -29,13 +29,17 @@ public class JwtTokenProvider {
     private long refreshTokenExpirationMs;
 
     public String generateAccessToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, userDetails.getUsername());
+        return generateAccessToken((CustomUserDetails) userDetails);
     }
 
-    public String generateAccessToken(String email) {
-        return createToken(new HashMap<>(), email);
+    public String generateAccessToken(CustomUserDetails principal) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("role", principal.getAuthorities().iterator().next().getAuthority());
+        claims.put("customerId", principal.getCustomerId().toString());
+
+        return createToken(claims, principal.getUsername());
     }
+
 
     public String generateRefreshToken(String username) {
         return Jwts.builder()
@@ -91,7 +95,7 @@ public class JwtTokenProvider {
         return claimsResolver.apply(claims);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder().setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token).getBody();

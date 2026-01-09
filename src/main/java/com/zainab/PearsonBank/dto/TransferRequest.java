@@ -16,8 +16,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TransferRequest {
-    @Schema(name = "Id of Customer Making Request")
-    @NotNull(message = "Customer Id is required")
+    @Schema(name = "Id of User Making Request")
+    @NotNull(message = "User Id is required")
     private String customerId;
 
     @Schema(name = "Credit Account Number")

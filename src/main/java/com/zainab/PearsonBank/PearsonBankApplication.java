@@ -9,10 +9,12 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableAsync
 @EnableRetry
+@EnableScheduling
 @OpenAPIDefinition(
         info = @Info(
                 title ="Pearson Fintech App",
@@ -32,9 +34,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 )
 public class PearsonBankApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(PearsonBankApplication.class, args);
     }
-
 }

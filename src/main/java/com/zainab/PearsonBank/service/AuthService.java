@@ -17,11 +17,9 @@ public interface AuthService {
 
     public String setAppPassword(String customerId, String password);
     public String changeAppPassword(String customerId, String oldPassword, String newPassword);
-    public boolean confirmAppPassword(String customerId, String password);
 
     public String setTransactionPin(String customerId, String transactionPin);
     public String changeTransactionPin(String customerId, String oldTransactionPin, String newTransactionPin);
-    public boolean confirmTransactionPin(String customerId, String transactionPin);
 
     public ResponseEntity<?> logout(HttpServletRequest request);
     public ResponseEntity<?> logoutAllDevices(HttpServletRequest request);

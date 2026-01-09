@@ -5,22 +5,17 @@ import com.zainab.PearsonBank.entity.Account;
 import com.zainab.PearsonBank.entity.Transaction;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.AccountRepository;
-import com.zainab.PearsonBank.repository.CustomerRepository;
+import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.service.AccountService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
-import com.zainab.PearsonBank.utils.AccountHelper;
-import com.zainab.PearsonBank.utils.AccountResponses;
-import com.zainab.PearsonBank.utils.EmailUtils;
-import com.zainab.PearsonBank.utils.PdfGenerator;
+import com.zainab.PearsonBank.utils.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +30,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
     private final AccountRepository accountRepository;
-    private final CustomerRepository customerRepository;
+    private final UserRepository userRepository;
     private final EmailService emailService;
     private final TransactionService transactionService;
     private final AccountHelper accountHelper;
@@ -52,11 +47,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AppResponse<?> getAccount(String accountId) {
-        log.info("Received request to get customer account:::");
-
-        // TODO get logged-in user details
-        // check if the account id passed is owned by the logged-in customer
-//        boolean isLoggedInCustomerMakingRequest; accountId.getCustomerId().equals(loggedInCustomerId)
+        log.info("Received request to get user account:::");
 
         boolean accountExists = accountHelper.checkIfAccountExistsById(accountId);
         if (!accountExists) {
@@ -69,6 +60,22 @@ public class AccountServiceImpl implements AccountService {
         }
 
         Account account = accountRepository.findById(UUID.fromString(accountId)).orElse(null);
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        assert account != null;
+        UUID accountOwnerId = account.getUser().getId();
+
+        boolean isValidRequest = loggedInCustomerId.equals(accountOwnerId);
+        if (!isValidRequest) {
+        log.error("Invalid Request - Customer is not authorized to make this request!!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
+
         return AppResponse.builder()
                 .responseCode(AccountResponses.SUCCESS.getCode())
                 .responseMessage(AccountResponses.SUCCESS.getMessage())
@@ -78,16 +85,12 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public AppResponse<?> getAccounts(GetAccountsRequest request) {
-        log.info("Received request to get customer accounts:::");
-
-        // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
+        log.info("Received request to get user accounts:::");
 
         String customerId = request.getCustomerId();
         boolean customerExists = accountHelper.checkIfCustomerExistsById(customerId);
         if (!customerExists) {
-            log.error("Customer does not exist::::");
+            log.error("User does not exist::::");
             return AppResponse.builder()
                     .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
                     .responseMessage(AccountResponses.CUSTOMER_NOT_FOUND.getMessage())
@@ -95,11 +98,25 @@ public class AccountServiceImpl implements AccountService {
                     .build();
         }
 
-        List<Account> accounts = accountRepository.findByCustomerId(UUID.fromString(customerId));
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(UUID.fromString(customerId));
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
+
+        // check if accounts are not empty
+        List<Account> accounts = accountRepository.findByUserId(UUID.fromString(customerId));
         if (accounts == null || accounts.isEmpty()) {
+            log.info("No accounts found for this user:::");
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_NOT_FOUND.getCode())
-                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage() + " for tis customer")
+                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage() + " for this user")
                     .data(null)
                     .build();
         }
@@ -113,13 +130,15 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public ResponseEntity<?> generateAccountStatement(String customerId, String accountNumber, String startDate, String endDate) {
-        log.info("Received request to generate account statement for customer with id {} and account {}",
+        log.info("Received request to generate account statement for user with id {} and account {}",
                 customerId, accountNumber);
 
-        // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
-        // check if loggedInCustomer is owner of account number
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(UUID.fromString(customerId));
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!!");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Failed: You are not authorized to make this request!");
+        }
 
         boolean accountExists = accountHelper.checkIfAccountExists(accountNumber);
         if (!accountExists) {
@@ -129,7 +148,7 @@ public class AccountServiceImpl implements AccountService {
 
         boolean customerExists = accountHelper.checkIfCustomerExistsById(customerId);
         if (!customerExists) {
-            log.error("Customer does not exist:::");
+            log.error("User does not exist:::");
             return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.CUSTOMER_NOT_FOUND.getCode(), AccountResponses.CUSTOMER_NOT_FOUND.getMessage(), null) );
         }
 
@@ -137,8 +156,8 @@ public class AccountServiceImpl implements AccountService {
         List<Transaction> transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
 
         if (transactions == null || transactions.isEmpty()) {
-            log.error("Transactions not found for customer within this date range:::");
-            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), "Transactions not found for customer within this date range", null) );
+            log.error("Transactions not found for user within this date range:::");
+            return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), "Transactions not found for user within this date range", null) );
         }
 
         byte[] pdfBytes = pdfGenerator.generateStatement(transactions, accountNumber, customer, startDate, endDate);
@@ -157,7 +176,7 @@ public class AccountServiceImpl implements AccountService {
     @Transactional
     @Override
     public AppResponse<?> deleteAccount(DeleteAccountRequest deleteAccountRequest) {
-        log.info("Received request to delete account for customer with id {} and account with id{}",
+        log.info("Received request to delete account for user with id {} and account with id{}",
                 deleteAccountRequest.getCustomerId(), deleteAccountRequest.getAccountId());
 
         String accountId = deleteAccountRequest.getAccountId();
@@ -183,7 +202,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         if (customerDetails.getNoOfAccounts() <= 1) {
-            customerRepository.deleteById(UUID.fromString(customerId)); // delete customer is that is the only account
+            userRepository.deleteById(UUID.fromString(customerId)); // delete user is that is the only account
         }
         accountRepository.deleteById(UUID.fromString(accountId));
         LocalDateTime now = LocalDateTime.now();
@@ -192,7 +211,7 @@ public class AccountServiceImpl implements AccountService {
         EmailDetails accountDeletionEmail = new EmailDetails();
         accountDeletionEmail.setSubject(EmailUtils.ACCOUNT_DELETION_ALERT_SUBJECT.getTemplate());
         accountDeletionEmail.setBody(EmailUtils.ACCOUNT_DELETION_ALERT_BODY.format(
-                accountHelper.getCustomerFullName(UUID.fromString(customerId)), formattedDate,
+                customerDetails.getFullName(), formattedDate,
                 appSupportMail, appSupportMail, appName
         ));
         accountDeletionEmail.setRecipient(customerDetails.getEmail());

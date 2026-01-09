@@ -12,13 +12,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/transaction")
@@ -31,8 +34,9 @@ public class TransactionController {
     @Autowired
     AccountHelper accountHelper;
 
-    @Operation(summary = "Credit Account", description = "API endpoint to credit customer account")
+    @Operation(summary = "Credit Account", description = "API endpoint to credit user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/credit-account")
     public ResponseEntity<AppResponse<?>> creditAccount(@RequestBody CreditDebitRequest creditRequest, HttpServletRequest request){
         log.info("Incoming request to credit account: : {} from ip {}", creditRequest, request.getRemoteAddr());
@@ -54,8 +58,9 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Debit Account", description = "API endpoint to get a customer account")
+    @Operation(summary = "Debit Account", description = "API endpoint to get a user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/debit-account")
     public ResponseEntity<AppResponse<?>> debitAccount(@RequestBody CreditDebitRequest debitRequest, HttpServletRequest request){
         log.info("Incoming request to debit account: : {} from ip {}", debitRequest, request.getRemoteAddr());
@@ -77,13 +82,13 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Single Transfer", description = "API endpoint to transfer fundsg")
+    @Operation(summary = "Single Transfer", description = "API endpoint to transfer funds")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/single-transfer")
     public ResponseEntity<AppResponse<?>> singleTransfer(@RequestBody TransferRequest transferRequest, HttpServletRequest request){
         log.info("Incoming request to transfer funds from ip {}", request.getRemoteAddr());
 
-        // TODO validate transfer request method should be created in account helper (no empty, fields, amounts is valid, and customer exists
         if (!AccountUtils.validateTransferRequest(transferRequest) || !accountHelper.checkIfAmountIsValid(transferRequest.getAmount())
                 || !accountHelper.checkIfCustomerExistsById(transferRequest.getCustomerId())) {
 
@@ -102,15 +107,35 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Get Transactions ", description = "API endpoint to get transactions for customer")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/get-transactions")
     public ResponseEntity<AppResponse<?>> getTransactions(@RequestBody GetTransactionRequest getTransactionRequest, HttpServletRequest request){
-        log.info("Incoming request to get transaction for customer from ip {}", request.getRemoteAddr());
+        log.info("Incoming request to get transaction for user from ip {}", request.getRemoteAddr());
 
-        // TODO get logged-in user details
-        // check if the customer id passed is same as customer id of the logged-in customer
-        // check if customer in the request owns the account passed
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
+        String customerId = getTransactionRequest.getCustomerId();
+        String accountId  = getTransactionRequest.getAccountId();
+        String transactionId = getTransactionRequest.getTransactionId();
 
+        AccountDetails accountDetails = accountHelper.fetchAccountDetails(getTransactionRequest.getAccountId());
+        String accountNumber = accountDetails.getAccountNumber();
+        String startDate =  getTransactionRequest.getStartDate();
+        String endDate =  getTransactionRequest.getEndDate();
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(UUID.fromString(customerId)) &&
+                loggedInCustomerId.equals(accountDetails.getOwnerId());
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!");
+            AppResponse<?> response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
 
         // validate request
         if (!AccountUtils.validateGetTransactionRequest(getTransactionRequest)) {
@@ -123,7 +148,7 @@ public class TransactionController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (!accountHelper.checkIfAccountExistsById(getTransactionRequest.getAccountId())) {
+        if (!accountHelper.checkIfAccountExistsById(accountId)) {
             log.error("Account does not exist:::::");
             AppResponse<?> response = AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_NOT_FOUND.getCode())
@@ -133,7 +158,7 @@ public class TransactionController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (!accountHelper.checkIfCustomerExistsById(getTransactionRequest.getCustomerId())) {
+        if (!accountHelper.checkIfCustomerExistsById(customerId)) {
             log.error("Account does not exist:::::");
             AppResponse<?> response = AppResponse.builder()
                     .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
@@ -144,12 +169,6 @@ public class TransactionController {
         }
 
         getTransactionRequest.setSenderIp(request.getRemoteAddr());
-
-        String customerId = getTransactionRequest.getCustomerId();
-        String transactionId = getTransactionRequest.getTransactionId();
-        String accountNumber = accountHelper.fetchAccountDetails(getTransactionRequest.getAccountId()).getAccountNumber();
-        String startDate =  getTransactionRequest.getStartDate();
-        String endDate =  getTransactionRequest.getEndDate();
 
         if (transactionId != null && !transactionId.isEmpty()) { // get single transaction
             Transaction transaction = transactionService.getSingleTransaction(customerId, accountNumber, transactionId);
@@ -185,6 +204,9 @@ public class TransactionController {
         return ResponseEntity.internalServerError().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(), null));
     }
 
+    @Operation(summary = "Download Receipt", description = "API endpoint to download transaction receipt")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
     @PostMapping("/download-receipt")
     public ResponseEntity<?> generateReceipt(@RequestBody ReceiptRequest receiptRequest, HttpServletRequest request) {
         log.info("Incoming request to get transaction receipt for from ip {}", request.getRemoteAddr());

@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class GetTransactionRequest {
-    @Schema(name = "Customer Id")
+    @Schema(name = "User Id")
     private String customerId;
 
     @Schema(name = "Transaction Id (Pass this if it is a single transaction to be fetched)")
