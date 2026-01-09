@@ -2,12 +2,12 @@ package com.zainab.PearsonBank.service.serviceimpl;
 
 import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.entity.Account;
-import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.entity.Transaction;
+import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.AccountRepository;
-import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.repository.TransactionRepository;
+import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
 import com.zainab.PearsonBank.types.TransactionStatus;
@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -58,7 +59,7 @@ public class TransactionServiceImpl implements TransactionService {
         // extract all parameters
         String crAccountNo = creditRequest.getAccountNumber();
         BigDecimal crAmount = creditRequest.getAmount();
-        UUID customerId = creditRequest.getCustomerId(); //get logged in user account
+        UUID customerId = creditRequest.getCustomerId();
         String channel = creditRequest.getChannel() != null ? creditRequest.getChannel() : "web";
         String narration = creditRequest.getNarration() != null ? defaultNarration + creditRequest.getChannel() : defaultNarration;
         String ip = creditRequest.getSenderIp();
@@ -68,12 +69,17 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
         log.info("Account no is: {}, User name is: {}", account.getAccountNumber(), accountHelper.getCustomerFullName(user));
 
-        // TODO verify request
-        // check if the user id passed is same as user id of the logged-in user
-        // check if debit acc/no passed in the request is the same as acc/no of the logged-in user
-//        boolean isLoggedInCustomerMakingRequest; customerId().equals(loggedInCustomerId)
-//        boolean isLoggedInCustomerOwnerOfAccount = account.getUser().getId().equals(loggedInCustomerId);
-//        boolean isCustomerMakingRequestOwnerOfAccount = account.getUser().getId().equals(customerId);
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(account.getUser().getId());
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!!!!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
 
         // check if account number exists
         boolean accountExists = accountHelper.checkIfAccountExists(crAccountNo);
@@ -202,12 +208,18 @@ public class TransactionServiceImpl implements TransactionService {
         User user = userRepository.findById(customerId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
 
-        // TODO verify request
-        // check if the user id passed is same as user id of the logged-in user
-        // check if debit acc/no passed in the request is the same as acc/no of the logged-in user
-//        boolean isLoggedInCustomerMakingRequest; debitRequest.getCustomerId().equals(loggedInCustomerId)
-//        boolean isLoggedInCustomerOwnerOfAccount = account.getUser().getId().equals(loggedInCustomerId);
-//        boolean isCustomerMakingRequestOwnerOfAccount = account.getUser().getId().equals(customerId);
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(account.getUser().getId());
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!!!!!!!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
+
 
         // check if account exists
         boolean accountExists = accountHelper.checkIfAccountExists(drAccountNo);
@@ -358,12 +370,17 @@ public class TransactionServiceImpl implements TransactionService {
         User beneficiary = userRepository.findById(beneficiaryAcc.getUser().getId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + beneficiaryAcc.getUser().getId()));
 
-        // TODO get logged-in user details
-        // check if the user id passed is same as user id of the logged-in user
-        // check if debit acc/no passed in the request is the same as acc/no of the logged-in user
-//        boolean isLoggedInCustomerMakingRequest; transferRequest.getCustomerId().equals(loggedInCustomerId)
-//        boolean isLoggedInCustomerOwnerOfAccount = senderAcc.getUser().getId().equals(loggedInCustomerId);
-//        boolean isCustomerMakingRequestOwnerOfAccount = senderAcc.getUser().getId().equals(customerId);
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(senderAcc.getUser().getId());
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
 
         // check if accounts exist
         boolean drAccountExists = accountHelper.checkIfAccountExists(drAccountNo);
@@ -392,6 +409,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // check for insufficient funds
+        log.info("sender acc balance is:: {}", senderAcc.getAccountBalance() );
         boolean sufficientFunds = AccountUtils.hasSufficientBalance(senderAcc.getAccountBalance(), transferAmount);
         if (!sufficientFunds) {
             log.info("Insufficient funds for this account::::");
@@ -495,6 +513,7 @@ public class TransactionServiceImpl implements TransactionService {
                             .txnAmount(String.valueOf(transferAmount))
                             .txnReference(txnReference)
                             .txnStatus(savedTxn.getTransactionStatus())
+                            .txnDate(savedTxn.getCreatedDate())
                             .build())
                     .build();
 
@@ -555,15 +574,19 @@ public class TransactionServiceImpl implements TransactionService {
     public ResponseEntity<?> generateReceiptPdf(String transactionId) {
         log.info("Received request to generate transaction receipt for user");
 
-        // TODO get logged-in user details
-        // check if the user id passed is same as user id of the logged-in user
-        // check if loggedInCustomer is owner of transaction
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
-
         Transaction transaction = transactionRepository.findByTransactionId(UUID.fromString(transactionId));
         if (transaction == null) {
             return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(), null) );
         };
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID customerId = transaction.getInitiator();
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(customerId);
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         byte[] pdfBytes = pdfGenerator.generateReceipt(transaction);
         String filename = String.format("receipt_%s.pdf", transaction.getCreatedDate());

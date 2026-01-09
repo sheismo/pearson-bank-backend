@@ -189,7 +189,7 @@ public class AccountHelper {
                 .orElseThrow(RuntimeException::new);
 
         if (user == null) return false;
-        return !(user.getAppPassword() == null);
+        return !user.isDefaultPassword();
     }
 
     public boolean checkIfAccountIsActive(String accountNumber) {

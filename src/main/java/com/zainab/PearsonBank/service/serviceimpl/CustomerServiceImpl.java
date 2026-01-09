@@ -206,19 +206,13 @@ public class CustomerServiceImpl implements CustomerService  {
         return AppResponse.builder()
                 .responseCode(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getCode())
                 .responseMessage(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getMessage())
-                .data(mapperClass.getCustomerDetails(user, accountNumber))
+                .data(mapperClass.getCustomerDetails(user))
                 .build();
     }
 
     @Override
     public AppResponse<?> balanceEnquiry(EnquiryRequest request) {
         log.info("Received request to get account balance");
-
-        // TODO get logged-in user details
-        // check if the user id passed is same as user id of the logged-in user
-        // check if logged-in user is owner of account number passed in request
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
-//        boolean isLoggedInCustomerOwnerOfAccount = account.getUser().getId().equals(loggedInCustomerId);
 
         boolean accountExists = accountHelper.checkIfAccountExists(request.getAccountNumber());
         if (!accountExists) {
@@ -234,6 +228,18 @@ public class CustomerServiceImpl implements CustomerService  {
         UUID customerId = account.getUser().getId();
         User user = userRepository.findById(customerId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(UUID.fromString(request.getCustomerId()));
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
 
         log.info("Returned account data is {}", account);
         return AppResponse.builder()
@@ -254,10 +260,13 @@ public class CustomerServiceImpl implements CustomerService  {
     public String nameEnquiry(EnquiryRequest request) {
         log.info("Received request to get account name::");
 
-        // TODO get logged-in user details
-        // check if the user id passed is same as user id of the logged-in user
-        // check if acc/no passed in the request is the same as acc/no of the logged-in user
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
+        // Check if the logged in customer the one making the request
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(UUID.fromString(request.getCustomerId()));
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!");
+            return null;
+        }
 
         boolean accountExists = accountHelper.checkIfAccountExists(request.getAccountNumber());
         if (!accountExists) {

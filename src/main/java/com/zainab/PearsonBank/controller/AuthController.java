@@ -66,14 +66,15 @@ public class AuthController {
         setPasswordRequest.setIpAddress(request.getRemoteAddr());
 
         if (appPassword == null || appPassword.isEmpty() ||  customerId == null || customerId.isEmpty() || accountHelper.hasSetAppPassword(customerId) ) {
-            log.error("Invalid Request::::");
+            log.error("Invalid Request - Issue with input fields or user already set password::::");
             response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), null);
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (appPassword.length() < 12 || passwordGenerator.isValidPassword(appPassword)) { // password must be 8 or more characters
+        if (appPassword.length() < 12 || !passwordGenerator.isValidPassword(appPassword)) { // password must be 12 or more characters, uppercase, lowercase, digit, symbol)
             log.error("Invalid Request::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Password length is invalid");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage() + " - Password length is invalid",
+                    "Password must be at least 12 characters,and should contain at least 1 uppercase letter, 1 lowercase letter, 1 digit, and 1 symbol.");
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -111,9 +112,15 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (oldPassword.length() < 8 || newPassword.length() < 8) { // password must be 8 or more characters
-            log.error("Invalid Request - length is less than 8::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Password length is invalid!");
+        if (oldPassword.equals(newPassword)) {
+            log.error("Invalid Request - Old Password is the same as New Password::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Old Password cannot be the same as New Password!");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (newPassword.length() < 12 || !passwordGenerator.isValidPassword(newPassword)) { // password must be 8 or more characters
+            log.error("Invalid Request - password does not meet complexity requirements::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Password does not meet complexity requirements!");
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -124,7 +131,7 @@ public class AuthController {
         } catch (Exception e) {
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to set app password: " + e.getMessage())
+                    .responseMessage("Failed to change app password: " + e.getMessage())
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
@@ -150,9 +157,9 @@ public class AuthController {
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (transactionPin.length() != 4) { // pin must be exactly 4 characters
-            log.error("Invalid Request:::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin length is invalid");
+        if (transactionPin.length() != 4 || !passwordGenerator.isValidPin(transactionPin)) { // pin must be exactly 4 characters
+            log.error("Invalid Request - Pin must be 4 digits:::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin must be 4 digits");
             return ResponseEntity.badRequest().body(response);
         }
 
@@ -187,13 +194,19 @@ public class AuthController {
         if (oldTransactionPin == null || oldTransactionPin.isEmpty() ||  newTransactionPin == null || newTransactionPin.isEmpty() ||
                 customerId == null || customerId.isEmpty() || !accountHelper.hasSetTransactionPin(customerId)) {
             log.error("Invalid Request - empty parameters:::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Invalid Request");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Invalid Request - empty parameters");
             return ResponseEntity.badRequest().body(response);
         }
 
-        if (oldTransactionPin.length() != 4 || newTransactionPin.length() != 4) { // pin must be exactly 4 characters
-            log.error("Invalid Request - pin length is invalid:::::");
-            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin length is invalid");
+        if (oldTransactionPin.equals(newTransactionPin)) {
+            log.error("Invalid Request - Old Pin cannot be the same as New Pin:::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Old Pin cannot be the same as New Pin!");
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (newTransactionPin.length() != 4 || !passwordGenerator.isValidPin(newTransactionPin)) {
+            log.error("Invalid Request - Pin does not meet complexity requirement:::::");
+            response = new AppResponse<>(AccountResponses.INVALID_REQUEST.getCode(), AccountResponses.INVALID_REQUEST.getMessage(), "Pin does not meet complexity requirement");
             return ResponseEntity.badRequest().body(response);
         }
 

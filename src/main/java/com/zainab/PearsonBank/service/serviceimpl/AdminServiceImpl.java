@@ -61,6 +61,8 @@ public class AdminServiceImpl implements AdminService {
             Optional<Account> acc = accountRepository.findById(UUID.fromString(accountId));
             if (acc.isPresent()) {
                 Account account = acc.get();
+                if (account.getAccountStatus().equals("Active")) return true;
+
                 account.setAccountStatus("Active");
                 accountRepository.save(account);
                 return true;
@@ -78,6 +80,8 @@ public class AdminServiceImpl implements AdminService {
             Optional<Account> acc = accountRepository.findById(UUID.fromString(accountId));
             if (acc.isPresent()) {
                 Account account = acc.get();
+                if (account.getAccountStatus().equals("Inactive")) return true;
+
                 account.setAccountStatus("Inactive");
                 accountRepository.save(account);
                 return true;
@@ -106,9 +110,11 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public boolean disableUser(String customerId) {
         try {
-            Optional<User> c = userRepository.findById(UUID.fromString(customerId));
-            if (c.isPresent()) {
-                User user = c.get();
+            Optional<User> u = userRepository.findById(UUID.fromString(customerId));
+            if (u.isPresent()) {
+                User user = u.get();
+                if (!user.isProfileEnabled()) return true;
+
                 user.setProfileEnabled(false);
                 userRepository.save(user);
                 return true;
@@ -123,9 +129,11 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public boolean enableUser(String customerId) {
         try {
-            Optional<User> c = userRepository.findById(UUID.fromString(customerId));
-            if (c.isPresent()) {
-                User user = c.get();
+            Optional<User> u = userRepository.findById(UUID.fromString(customerId));
+            if (u.isPresent()) {
+                User user = u.get();
+                if (user.isProfileEnabled()) return true;
+
                 user.setProfileEnabled(true);
                 userRepository.save(user);
                 return true;

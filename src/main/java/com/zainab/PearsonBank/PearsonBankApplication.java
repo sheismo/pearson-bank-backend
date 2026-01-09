@@ -34,9 +34,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 )
 public class PearsonBankApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(PearsonBankApplication.class, args);
     }
-
 }

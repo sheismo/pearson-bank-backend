@@ -63,7 +63,7 @@ public class PasswordGenerator {
         return PASSWORD_PATTERN.matcher(password).matches();
     }
 
-    public static boolean isValidPin(String pin) {
+    public boolean isValidPin(String pin) {
         if (pin == null) {
             return false;
         }

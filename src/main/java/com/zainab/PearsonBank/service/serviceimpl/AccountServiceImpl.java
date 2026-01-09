@@ -9,18 +9,13 @@ import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.service.AccountService;
 import com.zainab.PearsonBank.service.EmailService;
 import com.zainab.PearsonBank.service.TransactionService;
-import com.zainab.PearsonBank.utils.AccountHelper;
-import com.zainab.PearsonBank.utils.AccountResponses;
-import com.zainab.PearsonBank.utils.EmailUtils;
-import com.zainab.PearsonBank.utils.PdfGenerator;
+import com.zainab.PearsonBank.utils.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,10 +49,6 @@ public class AccountServiceImpl implements AccountService {
     public AppResponse<?> getAccount(String accountId) {
         log.info("Received request to get user account:::");
 
-        // TODO get logged-in user details
-        // check if the account id passed is owned by the logged-in user
-//        boolean isLoggedInCustomerMakingRequest; accountId.getCustomerId().equals(loggedInCustomerId)
-
         boolean accountExists = accountHelper.checkIfAccountExistsById(accountId);
         if (!accountExists) {
             log.error("Account does not exist::::");
@@ -69,6 +60,22 @@ public class AccountServiceImpl implements AccountService {
         }
 
         Account account = accountRepository.findById(UUID.fromString(accountId)).orElse(null);
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        assert account != null;
+        UUID accountOwnerId = account.getUser().getId();
+
+        boolean isValidRequest = loggedInCustomerId.equals(accountOwnerId);
+        if (!isValidRequest) {
+        log.error("Invalid Request - Customer is not authorized to make this request!!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
+
         return AppResponse.builder()
                 .responseCode(AccountResponses.SUCCESS.getCode())
                 .responseMessage(AccountResponses.SUCCESS.getMessage())
@@ -79,10 +86,6 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public AppResponse<?> getAccounts(GetAccountsRequest request) {
         log.info("Received request to get user accounts:::");
-
-        // TODO get logged-in user details
-        // check if the user id passed is same as user id of the logged-in user
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
 
         String customerId = request.getCustomerId();
         boolean customerExists = accountHelper.checkIfCustomerExistsById(customerId);
@@ -95,11 +98,25 @@ public class AccountServiceImpl implements AccountService {
                     .build();
         }
 
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(UUID.fromString(customerId));
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
+
+        // check if accounts are not empty
         List<Account> accounts = accountRepository.findByUserId(UUID.fromString(customerId));
         if (accounts == null || accounts.isEmpty()) {
+            log.info("No accounts found for this user:::");
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_NOT_FOUND.getCode())
-                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage() + " for tis user")
+                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage() + " for this user")
                     .data(null)
                     .build();
         }
@@ -116,10 +133,12 @@ public class AccountServiceImpl implements AccountService {
         log.info("Received request to generate account statement for user with id {} and account {}",
                 customerId, accountNumber);
 
-        // TODO get logged-in user details
-        // check if the user id passed is same as user id of the logged-in user
-        // check if loggedInCustomer is owner of account number
-//        boolean isLoggedInCustomerMakingRequest; request.getCustomerId().equals(loggedInCustomerId)
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(UUID.fromString(customerId));
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!!");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Failed: You are not authorized to make this request!");
+        }
 
         boolean accountExists = accountHelper.checkIfAccountExists(accountNumber);
         if (!accountExists) {

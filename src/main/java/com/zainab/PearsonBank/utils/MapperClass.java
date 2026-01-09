@@ -18,6 +18,7 @@ public class MapperClass {
 
     public AccountDetails getAccountDetails(Account account) {
         AccountDetails dto = new AccountDetails();
+        dto.setAccountId(account.getId());
         dto.setOwnerId(account.getUser().getId());
         dto.setAccountName(accountHelper.getCustomerFullName(account.getUser()));
         dto.setAccountNumber(account.getAccountNumber());
@@ -32,6 +33,7 @@ public class MapperClass {
 
     public CustomerDetails getCustomerDetails(User user) {
         CustomerDetails dto = new CustomerDetails();
+        dto.setId(user.getId());
         dto.setFullName(accountHelper.getCustomerFullName(user));
         dto.setEmail(user.getEmail());
         dto.setPhoneNumber(user.getPhoneNumber());
@@ -40,30 +42,18 @@ public class MapperClass {
         dto.setAddress(user.getAddress());
         dto.setLocation(user.getState() + ", " + user.getCountry());
         dto.setNoOfAccounts(user.getNoOfAccounts());
+        if (!user.getAccounts().isEmpty()) {
+            dto.setPrimaryAccountNumber(user.getAccounts().get(0).getAccountNumber());
+        }
         dto.setTotalBalance(user.getTotalBalance());
-        dto.setPrimaryAccountNumber(user.getAccounts().get(0).getAccountNumber());
-
-        return dto;
-    }
-
-    public CustomerDetails getCustomerDetails(User user, String accountNo) {
-        CustomerDetails dto = new CustomerDetails();
-        dto.setFullName(accountHelper.getCustomerFullName(user));
-        dto.setEmail(user.getEmail());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setAlternativePhoneNumber(user.getAlternativePhoneNumber());
-        dto.setGender(user.getGender());
-        dto.setAddress(user.getAddress());
-        dto.setLocation(user.getState() + ", " + user.getCountry());
-        dto.setNoOfAccounts(user.getNoOfAccounts());
-        dto.setTotalBalance(user.getTotalBalance());
-        dto.setPrimaryAccountNumber(accountNo);
+        dto.setProfileEnabled(user.isProfileEnabled());
 
         return dto;
     }
 
     public TransactionDetails getTransactionDetails(Transaction transaction) {
         TransactionDetails dto = new TransactionDetails();
+        dto.setTransactionId(transaction.getTransactionId());
         dto.setSenderName(transaction.getDrAccountName());
         dto.setSenderAccount(transaction.getDrAccountNumber());
         dto.setBeneficiaryName(transaction.getCrAccountName());

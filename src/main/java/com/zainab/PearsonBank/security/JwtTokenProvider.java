@@ -1,7 +1,6 @@
 package com.zainab.PearsonBank.security;
 
 
-import com.zainab.PearsonBank.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -30,18 +29,17 @@ public class JwtTokenProvider {
     private long refreshTokenExpirationMs;
 
     public String generateAccessToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", userDetails.getAuthorities().iterator().next().getAuthority());
-
-        return createToken(claims, userDetails.getUsername());
+        return generateAccessToken((CustomUserDetails) userDetails);
     }
 
-    public String generateAccessToken(String email, User.Role role) {
+    public String generateAccessToken(CustomUserDetails principal) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("role", role);
+        claims.put("role", principal.getAuthorities().iterator().next().getAuthority());
+        claims.put("customerId", principal.getCustomerId().toString());
 
-        return createToken(claims, email);
+        return createToken(claims, principal.getUsername());
     }
+
 
     public String generateRefreshToken(String username) {
         return Jwts.builder()

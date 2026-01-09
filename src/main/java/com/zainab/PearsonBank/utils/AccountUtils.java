@@ -4,9 +4,13 @@ import com.zainab.PearsonBank.dto.CustomerRequest;
 import com.zainab.PearsonBank.dto.EnquiryRequest;
 import com.zainab.PearsonBank.dto.GetTransactionRequest;
 import com.zainab.PearsonBank.dto.TransferRequest;
+import com.zainab.PearsonBank.security.CustomUserDetails;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -79,6 +83,21 @@ public class AccountUtils {
     public static boolean hasSufficientBalance(BigDecimal balance, BigDecimal amount) {
         return balance.compareTo(amount) >= 0;
 //        return balance.subtract(amount).compareTo(BigDecimal.ZERO) >= 0;
+    }
+
+    public static UUID getLoggedInCustomerId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("Unauthenticated!");
+        }
+
+        System.out.println("User logged in: " + auth.getName());
+        System.out.println("User Roles: " + auth.getAuthorities());
+
+        CustomUserDetails principal = (CustomUserDetails) auth.getPrincipal();
+
+        return principal.getCustomerId();
     }
 
 }

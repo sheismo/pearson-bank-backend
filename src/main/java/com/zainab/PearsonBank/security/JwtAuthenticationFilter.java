@@ -103,6 +103,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+
             System.out.println("Authorities: " + userDetails.getAuthorities());
             List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
 

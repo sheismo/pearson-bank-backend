@@ -61,7 +61,12 @@ public class AdminController {
         log.info("Incoming request to activate user account from ip {}", request.getRemoteAddr());
 
         boolean result = adminService.activateAccount(accountId);
-        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), result);
+        String message = AccountResponses.FAILED.getMessage() + ": Account was not activated!";
+        if (result) {
+            message = AccountResponses.SUCCESS.getMessage() + ": Account has been activated!";
+        }
+
+        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), message, null);
         return ResponseEntity.ok(response);
     }
 
@@ -73,7 +78,12 @@ public class AdminController {
         log.info("Incoming request to deactivate user account from ip {}", request.getRemoteAddr());
 
         boolean result = adminService.deactivateAccount(accountId);
-        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), result);
+        String message = AccountResponses.FAILED.getMessage() + ": Account was not deactivated!";
+        if (result) {
+            message = AccountResponses.SUCCESS.getMessage() + ": Account has been deactivated!";
+        }
+
+        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), message, null);
         return ResponseEntity.ok(response);
     }
 
@@ -105,11 +115,16 @@ public class AdminController {
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/enable-customer/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    public ResponseEntity<AppResponse<?>> enableCustomerProfile(@PathVariable String customerId, HttpServletRequest request) {
+    public ResponseEntity<AppResponse<?>> enableCustomerProfile(@PathVariable("id") String customerId, HttpServletRequest request) {
         log.info("Incoming request to enable customer's profile from ip {}", request.getRemoteAddr());
 
         boolean result = adminService.enableUser(customerId);
-        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), result);
+        String message = AccountResponses.FAILED.getMessage() + ": User profile was not enabled!";
+        if (result) {
+            message = AccountResponses.SUCCESS.getMessage() + ": User profile has been enabled!";
+        }
+
+        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(),  message, null);
         return ResponseEntity.ok(response);
     }
 
@@ -121,7 +136,12 @@ public class AdminController {
         log.info("Incoming request to disable customer's profile from ip {}", request.getRemoteAddr());
 
         boolean result = adminService.disableUser(customerId);
-        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), result);
+        String message = AccountResponses.FAILED.getMessage() + ": User profile was not disabled!";
+        if (result) {
+            message = AccountResponses.SUCCESS.getMessage() + ": User profile has been disabled!";
+        }
+
+        AppResponse<?> response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), message, null);
         return ResponseEntity.ok(response);
     }
 

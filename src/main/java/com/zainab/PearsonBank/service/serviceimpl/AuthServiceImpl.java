@@ -1,13 +1,14 @@
 package com.zainab.PearsonBank.service.serviceimpl;
 
 import com.zainab.PearsonBank.dto.*;
-import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.entity.EmailOtp;
+import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.entity.UserSession;
 import com.zainab.PearsonBank.event.EmailEvent;
-import com.zainab.PearsonBank.repository.UserRepository;
 import com.zainab.PearsonBank.repository.EmailOtpRepository;
 import com.zainab.PearsonBank.repository.SessionRepository;
+import com.zainab.PearsonBank.repository.UserRepository;
+import com.zainab.PearsonBank.security.CustomUserDetails;
 import com.zainab.PearsonBank.security.JwtTokenProvider;
 import com.zainab.PearsonBank.service.AuthService;
 import com.zainab.PearsonBank.service.EmailService;
@@ -29,7 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -183,7 +187,7 @@ public class AuthServiceImpl implements AuthService {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh token mismatch!");
         }
 
-        String newAccessToken = jwtTokenProvider.generateAccessToken(email, user.getRole());
+        String newAccessToken = jwtTokenProvider.generateAccessToken(new CustomUserDetails(user));
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(email);
 
         user.setRefreshToken(refreshToken);
@@ -265,39 +269,51 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String setAppPassword(String customerId, String password) {
         Optional<User> oCustomer = userRepository.findById(UUID.fromString(customerId));
-        if (oCustomer.isEmpty()) return "User Not Found";
+        if (oCustomer.isEmpty()) {
+            log.info("No user found for the id passed!!");
+            throw new RuntimeException("User Not Found!");
+        }
 
         User user = oCustomer.get();
         String hashedPassword = passwordEncoder.encode(password);
-        if(!user.isDefaultPassword()) return "Invalid Request: use Change Password option to change your password!";
-        if(user.getAppPassword() != null && user.getAppPassword().equals(hashedPassword)) return "You cannot use your old password!";
 
         user.setAppPassword(hashedPassword);
         user.setDefaultPassword(false);
         userRepository.save(user);
+
         return "Password set successfully!";
     }
 
     @Override
     public String changeAppPassword(String customerId, String oldPassword, String newPassword) {
-        if (oldPassword.equals(newPassword)) {
-            return "Failed: Old Password cannot be the same as New Password";
-        }
-
-        if (confirmAppPassword(customerId, oldPassword)) { //&& accountHelper.isValidPassword(customerId, newPassword)
-            // save to cred history table
-            return setAppPassword(customerId, newPassword);
-        }
-        return "Error occurred: Could not change user app assword!";
-    }
-
-    @Override
-    public boolean confirmAppPassword(String customerId, String password) {
         Optional<User> oCustomer = userRepository.findById(UUID.fromString(customerId));
-        if (oCustomer.isEmpty()) return false;
+        if (oCustomer.isEmpty()) {
+            log.info("No user found for the id passed!");
+            throw new RuntimeException("User Not Found!");
+        }
 
         User user = oCustomer.get();
-        return passwordEncoder.matches(password, user.getAppPassword());
+        String hashedPassword = passwordEncoder.encode(newPassword);
+
+        if (!passwordEncoder.matches(oldPassword, user.getAppPassword())) {
+            log.info("Incorrect Password!");
+            throw new RuntimeException("Incorrect Password!!");
+        }
+
+        if (user.isDefaultPassword()) {
+            log.info("User should use Set Password option to change default password!");
+            throw new RuntimeException("Use the set password option to change your default password!!");
+        }
+
+        if(user.getAppPassword() != null && user.getAppPassword().equals(hashedPassword)) {
+            log.info("User cannot reuse their old password!");
+            throw new RuntimeException("You cannot reuse your old password!!");
+        }
+
+        user.setAppPassword(hashedPassword);
+        userRepository.save(user);
+
+        return "Password changed successfully!";
     }
 
     @Override
@@ -307,35 +323,38 @@ public class AuthServiceImpl implements AuthService {
 
         User user = oCustomer.get();
         String hashedPin = passwordEncoder.encode(transactionPin);
-        if(!user.isDefaultPassword()) return "Invalid Request: use Change Pin option to change your transaction pin!";
-        if(user.getTransactionPin() != null && user.getTransactionPin().equals(hashedPin)) return "You cannot use your old pin!";
 
         user.setTransactionPin(hashedPin);
         userRepository.save(user);
+
         return "Pin set successfully!";
     }
 
     @Override
     public String changeTransactionPin(String customerId, String oldTransactionPin, String newTransactionPin) {
-        if (oldTransactionPin.equals(newTransactionPin)) {
-            return "Failed: Old Pin cannot be the same as New Pin";
-        }
-
-        if (confirmTransactionPin(customerId, oldTransactionPin)) { // && accountHelper.isValidPin(customerId, newTransactionPin)
-            // save to cred history table
-            return setTransactionPin(customerId, newTransactionPin);
-        }
-
-        return "Failed to set transaction pin!";
-    }
-
-    @Override
-    public boolean confirmTransactionPin(String customerId, String transactionPin) {
         Optional<User> oCustomer = userRepository.findById(UUID.fromString(customerId));
-        if (oCustomer.isEmpty()) return false;
+        if (oCustomer.isEmpty()) {
+            log.error("No user found for the id passed!!");
+            throw new RuntimeException("User Not Found!");
+        }
 
         User user = oCustomer.get();
-        return passwordEncoder.matches(transactionPin, user.getTransactionPin());
+        String hashedPin = passwordEncoder.encode(newTransactionPin);
+
+        if (!passwordEncoder.matches(oldTransactionPin, user.getTransactionPin())) {
+            log.error("Incorrect Pin!");
+            throw new RuntimeException("Incorrect Pin!!");
+        }
+
+        if(user.getTransactionPin() != null && user.getTransactionPin().equals(hashedPin)) {
+            log.info("User cannot reuse their old pin!");
+            throw new RuntimeException("You cannot reuse your old pin!!");
+        }
+
+        user.setTransactionPin(hashedPin);
+        userRepository.save(user);
+
+        return "Pin changed successfully!";
     }
 
     @Override
@@ -424,5 +443,4 @@ public class AuthServiceImpl implements AuthService {
         }
         return null;
     }
-
 }

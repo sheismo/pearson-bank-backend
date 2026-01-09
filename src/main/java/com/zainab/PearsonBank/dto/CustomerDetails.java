@@ -43,9 +43,12 @@ public class CustomerDetails {
     @Schema(name = "No of Accounts")
     private int noOfAccounts;
 
+    @Schema(name = "Primary Account Number")
+    private String primaryAccountNumber;
+
     @Schema(name = "Total Balance")
     private BigDecimal totalBalance;
 
-    @Schema(name = "Primary Account Number")
-    private String primaryAccountNumber;
+    @Schema(name = "Profile Enabled")
+    private boolean profileEnabled;
 }

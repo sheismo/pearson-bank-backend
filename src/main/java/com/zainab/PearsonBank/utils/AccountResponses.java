@@ -11,7 +11,7 @@ public enum AccountResponses {
     ACCOUNT_EXISTS("01", "Account exists"),
     ACCOUNT_NOT_FOUND("02", "Account not found"),
     ACCOUNT_BLOCKED("03", "Account blocked"),
-    ACCOUNT_INACTIVE("04", "Account inactive"),
+    ACCOUNT_INACTIVE("04", "Account is inactive"),
     FAILED("99", "Error occurred!"),
     SUCCESS("00", "Success!"),
     INVALID_REQUEST("40", "Invalid Request!"),
