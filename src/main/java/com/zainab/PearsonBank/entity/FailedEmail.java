@@ -25,7 +25,11 @@ public class FailedEmail {
     private String body;
 
     private String failureReason;
+
+    @Builder.Default
     private int retryCount = 0;
+
+    @Builder.Default
     private int maxRetries = 3;
 
     @Enumerated(EnumType.STRING)
