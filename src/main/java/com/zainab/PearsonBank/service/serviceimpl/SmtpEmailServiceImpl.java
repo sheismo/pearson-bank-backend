@@ -26,7 +26,7 @@ import java.util.Objects;
 
 @Service
 @Slf4j
-public class EmailServiceImpl implements EmailService {
+public class SmtpEmailServiceImpl implements EmailService {
     @Autowired
     JavaMailSender javaMailSender;
 
