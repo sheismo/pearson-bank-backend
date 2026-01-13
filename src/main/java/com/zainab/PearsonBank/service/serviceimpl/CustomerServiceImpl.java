@@ -137,7 +137,7 @@ public class CustomerServiceImpl implements CustomerService  {
         Optional<User> oCustomer = userRepository.findByEmail(emailAddress);
 
         if (oCustomer.isEmpty()) {
-            log.info("customer not found");
+            log.info("Customer not found");
             return AppResponse.builder()
                     .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
                     .responseMessage(AccountResponses.CUSTOMER_NOT_FOUND.getMessage())
@@ -191,7 +191,7 @@ public class CustomerServiceImpl implements CustomerService  {
         user.setDefaultPasswordIssuedAt(LocalDateTime.now());
         user.setNoOfAccounts(user.getNoOfAccounts() + 1);
         user.setProfileEnabled(true);
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         // send email to user
         EmailDetails emailDetails = new EmailDetails();
@@ -206,7 +206,7 @@ public class CustomerServiceImpl implements CustomerService  {
         return AppResponse.builder()
                 .responseCode(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getCode())
                 .responseMessage(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getMessage())
-                .data(mapperClass.getCustomerDetails(user))
+                .data(mapperClass.getCustomerDetails(savedUser))
                 .build();
     }
 
