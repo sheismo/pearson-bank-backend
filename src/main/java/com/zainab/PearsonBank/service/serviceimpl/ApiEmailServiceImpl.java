@@ -15,6 +15,7 @@ import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Recover;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
+@Service
 @Profile("prod")
 @RequiredArgsConstructor
 public class ApiEmailServiceImpl implements EmailService {

@@ -215,8 +215,10 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendEmailOtp(String name, String email, String type) {
-        otpRepository.findByEmail(email)
-                .ifPresent(otpRepository::delete);
+//        otpRepository.findByEmail(email)
+//                .ifPresent(otpRepository::delete);
+        otpRepository.deleteByEmail(email);
+        otpRepository.flush();
 
         String otp = accountHelper.generateOTP();
         log.info("OTP is {} ", otp);
