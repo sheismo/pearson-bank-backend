@@ -48,9 +48,10 @@ public class CustomerController {
             response = customerService.onboardNewCustomer(customerRequest);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
+            log.error("Error occurred: {}", e.getMessage());
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("User Onboarding Failed: " + e.getMessage())
+                    .responseMessage("User Onboarding Failed: please try again later or contact system admin!")
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
