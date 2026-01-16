@@ -24,13 +24,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -79,10 +77,8 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Default password expired. Please reset your password!");
         }
 
-        String token = jwtTokenProvider.generateAccessToken(
-                new org.springframework.security.core.userdetails.User(user.getEmail(), user.getAppPassword(),
-                        Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name())))
-        );
+        CustomUserDetails customUserDetails = new CustomUserDetails(user);
+        String token = jwtTokenProvider.generateAccessToken(customUserDetails);
 
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
 

@@ -28,10 +28,6 @@ public class JwtTokenProvider {
     @Value("${app.refreshToken.expiration}")
     private long refreshTokenExpirationMs;
 
-    public String generateAccessToken(UserDetails userDetails) {
-        return generateAccessToken((CustomUserDetails) userDetails);
-    }
-
     public String generateAccessToken(CustomUserDetails principal) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", principal.getAuthorities().iterator().next().getAuthority());
