@@ -44,9 +44,10 @@ public class AuthController {
             response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Failed to login - {}", e.getMessage());
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to login: " + e.getMessage())
+                    .responseMessage("Failed to login!")
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
@@ -83,9 +84,10 @@ public class AuthController {
             response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Failed to set app password {}", e.getMessage());
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to set app password: " + e.getMessage())
+                    .responseMessage("Failed to set app password")
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
@@ -129,9 +131,10 @@ public class AuthController {
             response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Failed to change app password: {} ", e.getMessage());
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to change app password: " + e.getMessage())
+                    .responseMessage("Failed to change app password")
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
@@ -168,9 +171,10 @@ public class AuthController {
             response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Failed to set transaction pin: {}", e.getMessage());
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to set transaction pin: " + e.getMessage())
+                    .responseMessage("Failed to set transaction pin: ")
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
@@ -215,9 +219,10 @@ public class AuthController {
             response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            log.error("Failed to change transaction pin: {}", e.getMessage());
             response = AppResponse.builder()
                     .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed to set transaction pin: " + e.getMessage())
+                    .responseMessage("Failed to change transaction pin")
                     .data(null)
                     .build();
             return ResponseEntity.internalServerError().body(response);
