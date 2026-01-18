@@ -39,6 +39,12 @@ public class AuthController {
         log.info("Incoming request to login user from ip{}", request.getRemoteAddr());
         AppResponse<?> response = null;
 
+        String ipAddress = getClientIp(request);
+        String userAgent = request.getHeader("User-Agent");
+
+        loginRequest.setIpAddress(ipAddress);
+        loginRequest.setUserAgent(userAgent);
+
         try {
             JwtResponse res = authService.authenticateUser(loginRequest);
             response = new AppResponse<>(AccountResponses.SUCCESS.getCode(), AccountResponses.SUCCESS.getMessage(), res);
@@ -292,6 +298,18 @@ public class AuthController {
     public ResponseEntity<?> logoutAllDevices(HttpServletRequest request) {
         return authService.logoutAllDevices(request);
     }
+
+    private String getClientIp(HttpServletRequest request) {
+
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0];
+        }
+
+        return request.getRemoteAddr();
+    }
+
 
 }
 

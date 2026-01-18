@@ -20,14 +20,20 @@ public class UserSession {
     private UUID sessionId;
 
     private UUID userId;
+    @Column(columnDefinition = "TEXT")
     private String accessToken;
+
+    @Column(columnDefinition = "TEXT")
     private String refreshToken;
+
     private LocalDateTime lastActivity;
     private boolean revoked = false;
 
     private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
     private String ipAddress;
+
+    @Column(columnDefinition = "TEXT")
     private String userAgent;
 }
 

@@ -79,7 +79,6 @@ public class AuthServiceImpl implements AuthService {
 
         CustomUserDetails customUserDetails = new CustomUserDetails(user);
         String token = jwtTokenProvider.generateAccessToken(customUserDetails);
-
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
 
         LocalDateTime now = LocalDateTime.now();
@@ -97,6 +96,8 @@ public class AuthServiceImpl implements AuthService {
         session.setLastActivity(now);
         session.setCreatedAt(now);
         session.setExpiresAt(now.plusMinutes(20));
+        session.setIpAddress(loginRequest.getIpAddress());
+        session.setUserAgent(loginRequest.getUserAgent());
         sessionRepository.save(session);
 
         return new JwtResponse(String.valueOf(user.getId()), user.getEmail(), user.getRole(),
