@@ -93,7 +93,7 @@ public class CustomerServiceImpl implements CustomerService  {
                 .multipleAccounts(false)
                 .emailVerified(false)
                 .profileEnabled(false)
-                .role(User.Role.ROLE_CUSTOMER)
+                .role(User.Role.CUSTOMER)
                 .build();
         User savedUser = userRepository.save(newUser);
         log.info("New onboarded user name is {}:::", savedUser.getFirstName());
