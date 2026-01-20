@@ -57,7 +57,7 @@ public class PearsonBankApplication {
 
             User admin = new User();
             admin.setEmail("admin@pearsonbank.com");
-            admin.setAppPassword(passwordEncoder.encode("Admin1234567@"));
+            admin.setAppPassword(passwordEncoder.encode(System.getenv("ADMIN_PASSWORD")));
             admin.setRole(User.Role.ADMIN);
             admin.setProfileEnabled(true);
             userRepository.save(admin);
