@@ -23,7 +23,7 @@ public enum EmailUtils {
                   </p>
                  \s
                    <p style="font-size: 14px;">
-                     Your default password is: (<strong>%s</strong>) , and it will expire in 24 hours.
+                     Your default password is: <strong>%s</strong> , and it will expire in 24 hours.
                      Please login to the app within the next 24 hours and set up your password and transaction pin.
                    </p>
                   \s
