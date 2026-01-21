@@ -36,7 +36,7 @@ public class TransactionController {
 
     @Operation(summary = "Credit Account", description = "API endpoint to credit user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/credit-account")
     public ResponseEntity<AppResponse<?>> creditAccount(@RequestBody CreditDebitRequest creditRequest, HttpServletRequest request){
         log.info("Incoming request to credit account: : {} from ip {}", creditRequest, request.getRemoteAddr());
@@ -60,7 +60,7 @@ public class TransactionController {
 
     @Operation(summary = "Debit Account", description = "API endpoint to get a user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/debit-account")
     public ResponseEntity<AppResponse<?>> debitAccount(@RequestBody CreditDebitRequest debitRequest, HttpServletRequest request){
         log.info("Incoming request to debit account: : {} from ip {}", debitRequest, request.getRemoteAddr());
@@ -84,7 +84,7 @@ public class TransactionController {
 
     @Operation(summary = "Single Transfer", description = "API endpoint to transfer funds")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/single-transfer")
     public ResponseEntity<AppResponse<?>> singleTransfer(@RequestBody TransferRequest transferRequest, HttpServletRequest request){
         log.info("Incoming request to transfer funds from ip {}", request.getRemoteAddr());
@@ -109,7 +109,7 @@ public class TransactionController {
 
     @Operation(summary = "Get Transactions ", description = "API endpoint to get transactions for customer")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/get-transactions")
     public ResponseEntity<AppResponse<?>> getTransactions(@RequestBody GetTransactionRequest getTransactionRequest, HttpServletRequest request){
         log.info("Incoming request to get transaction for user from ip {}", request.getRemoteAddr());
@@ -206,7 +206,7 @@ public class TransactionController {
 
     @Operation(summary = "Download Receipt", description = "API endpoint to download transaction receipt")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/download-receipt")
     public ResponseEntity<?> generateReceipt(@RequestBody ReceiptRequest receiptRequest, HttpServletRequest request) {
         log.info("Incoming request to get transaction receipt for from ip {}", request.getRemoteAddr());

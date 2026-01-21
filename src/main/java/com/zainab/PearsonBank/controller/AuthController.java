@@ -149,7 +149,7 @@ public class AuthController {
 
     @Operation(summary = "Set Transaction Pin", description = "API endpoint to set user transaction pin for first time users")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/set-pin")
     public ResponseEntity<AppResponse<?>> setPin(@RequestBody SetPasswordPinRequest setPinRequest, HttpServletRequest request) {
         log.info("Incoming request to set transaction pin for user from ip{}", request.getRemoteAddr());
@@ -189,7 +189,7 @@ public class AuthController {
 
     @Operation(summary = "Change Transaction Pin", description = "API endpoint to change user transaction pin")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/change-pin")
     public ResponseEntity<AppResponse<?>> changePin(@RequestBody ChangePasswordPinRequest changePinRequest, HttpServletRequest request) {
         log.info("Incoming request to change transaction pin for user from ip{}", request.getRemoteAddr());

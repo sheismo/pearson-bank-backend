@@ -140,7 +140,7 @@ public class CustomerController {
 
     @Operation(summary = "Name Enquiry", description = "API endpoint to get user account name")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/name-enquiry")
     public ResponseEntity<AppResponse<Object>> getCustomerName(@RequestBody EnquiryRequest enquiryRequest, HttpServletRequest request) {
         log.info("Incoming request to get account name: {} from ip {}", enquiryRequest, request.getRemoteAddr());

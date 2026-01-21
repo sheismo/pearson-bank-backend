@@ -32,7 +32,7 @@ public class AdminController {
     @Operation(summary = "Get All Accounts", description = "API endpoint to get all accounts")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/get-all-accounts")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> getAccounts(HttpServletRequest request) {
         log.info("Incoming request to get all user accounts from ip {}", request.getRemoteAddr());
 
@@ -44,7 +44,7 @@ public class AdminController {
     @Operation(summary = "Get Single Account", description = "API endpoint to get single account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/get-single-account/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> getSingleAccount(@PathVariable("id") String accountId, HttpServletRequest request) {
         log.info("Incoming request to get single user account from ip {}", request.getRemoteAddr());
 
@@ -56,7 +56,7 @@ public class AdminController {
     @Operation(summary = "Activate Account", description = "API endpoint to activate account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/activate-account/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> activateAccount(@PathVariable("id") String accountId, HttpServletRequest request) {
         log.info("Incoming request to activate user account from ip {}", request.getRemoteAddr());
 
@@ -73,7 +73,7 @@ public class AdminController {
     @Operation(summary = "Deactivate Account", description = "API endpoint to deactivate account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/deactivate-account/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> deactivateAccount(@PathVariable("id") String accountId, HttpServletRequest request) {
         log.info("Incoming request to deactivate user account from ip {}", request.getRemoteAddr());
 
@@ -90,7 +90,7 @@ public class AdminController {
     @Operation(summary = "Get All Customers", description = "API endpoint to get all customers")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/get-all-customers")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> getCustomers(HttpServletRequest request) {
         log.info("Incoming request to get all customers from ip {}", request.getRemoteAddr());
 
@@ -102,7 +102,7 @@ public class AdminController {
     @Operation(summary = "Get Single Customer", description = "API endpoint to get single customer")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/get-single-customer/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> getSingleCustomer(@PathVariable("id") String customerId, HttpServletRequest request) {
         log.info("Incoming request to get single customers from ip {}", request.getRemoteAddr());
 
@@ -114,7 +114,7 @@ public class AdminController {
     @Operation(summary = "Enable Customer's Profile", description = "API endpoint to enable customer's profile")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/enable-customer/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> enableCustomerProfile(@PathVariable("id") String customerId, HttpServletRequest request) {
         log.info("Incoming request to enable customer's profile from ip {}", request.getRemoteAddr());
 
@@ -131,7 +131,7 @@ public class AdminController {
     @Operation(summary = "Disable Customer's Profile", description = "API endpoint to disable customer's profile")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/disable-customer/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> disableCustomerProfile(@PathVariable("id") String customerId, HttpServletRequest request) {
         log.info("Incoming request to disable customer's profile from ip {}", request.getRemoteAddr());
 
@@ -148,7 +148,7 @@ public class AdminController {
     @Operation(summary = "Get All Transactions", description = "API endpoint to get all transactions")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/get-all-transactions")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> getTransactions(HttpServletRequest request) {
         log.info("Incoming request to get all transactions from ip {}", request.getRemoteAddr());
 
@@ -160,7 +160,7 @@ public class AdminController {
     @Operation(summary = "Get Single Transaction", description = "API endpoint to get single transaction")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/get-single-transaction/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> getSingleTransaction(@PathVariable("id") String transactionId, HttpServletRequest request) {
         log.info("Incoming request to get single transaction from ip {}", request.getRemoteAddr());
 
@@ -172,7 +172,7 @@ public class AdminController {
     @Operation(summary = "Reverse Transaction", description = "API endpoint to reverse transaction")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @GetMapping("/reverse-transaction/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AppResponse<?>> reverseTransaction(@PathVariable("id") String transactionId, HttpServletRequest request) {
         log.info("Incoming request tore reverse transaction from ip {}", request.getRemoteAddr());
 

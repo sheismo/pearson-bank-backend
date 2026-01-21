@@ -31,7 +31,7 @@ public class AccountController {
 
     @Operation(summary = "Get User Account", description = "API endpoint to get a user account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/get-account")
     public ResponseEntity<AppResponse<?>> getCustomerAccount(@RequestBody Map<String, String> payload, HttpServletRequest request) {
         log.info("Incoming request to get user account from ip {}", request.getRemoteAddr());
@@ -53,7 +53,7 @@ public class AccountController {
 
     @Operation(summary = "Get User Accounts", description = "API endpoint to get a list of all user accounts")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/get-accounts")
     public ResponseEntity<AppResponse<?>> getCustomerAccounts(@RequestBody GetAccountsRequest accountsRequest, HttpServletRequest request) {
         log.info("Incoming request to get user accounts name: {} from ip {}", accountsRequest, request.getRemoteAddr());
@@ -72,7 +72,7 @@ public class AccountController {
 
     @Operation(summary = "Get User Account Statement", description = "API endpoint to get account statement")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/get-account-statement")
     public ResponseEntity<?> getAccountStatement(@RequestBody AccountStatementRequest accountStatementRequest, HttpServletRequest request) {
         log.info("Incoming request to get user account statement: {} from ip {}", accountStatementRequest, request.getRemoteAddr());
@@ -101,7 +101,7 @@ public class AccountController {
 
     @Operation(summary = "Delete Account", description = "API endpoint to get delete account")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/delete-account")
     public ResponseEntity<AppResponse<?>> deleteAccount(@RequestBody DeleteAccountRequest deleteAccountRequest, HttpServletRequest request) {
         log.info("Incoming request to delete account wih id {} from ip {}", deleteAccountRequest.getAccountId(), request.getRemoteAddr());
