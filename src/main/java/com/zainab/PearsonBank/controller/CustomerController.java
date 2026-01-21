@@ -120,7 +120,7 @@ public class CustomerController {
 
     @Operation(summary = "Balance Enquiry", description = "API endpoint to check user account balance")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
-    @PreAuthorize("hasRole('ROLE_CUSTOMER') and @accountSecurity.accountBelongsToUser(authentication, #enquiryRequest.accountNumber) ")
+    @PreAuthorize("hasRole('CUSTOMER') and @accountSecurity.accountBelongsToUser(#root.authentication, #enquiryRequest.accountNumber) ")
     @PostMapping("/balance-enquiry")
     public ResponseEntity<AppResponse<?>> getCustomerBalance(@RequestBody EnquiryRequest enquiryRequest, HttpServletRequest request) {
         log.info("Incoming request to get account balance: {} from ip {}", enquiryRequest, request.getRemoteAddr());
