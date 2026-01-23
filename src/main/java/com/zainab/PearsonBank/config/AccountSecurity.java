@@ -11,6 +11,6 @@ public class AccountSecurity {
 
     public boolean accountBelongsToUser(Authentication authentication, String accountNumber) {
         String email = authentication.getName();
-        return accountRepository.existsByAccountNumberAndCustomer_Email(accountNumber, email);
+        return accountRepository.existsByAccountNumberAndUser_Email(accountNumber, email);
     }
 }
