@@ -119,6 +119,7 @@ public class TransactionController {
         String transactionId = getTransactionRequest.getTransactionId();
 
         AccountDetails accountDetails = accountHelper.fetchAccountDetails(getTransactionRequest.getAccountId());
+        log.info(" fetched account details {} " accountDetails.getAccountName());
         String accountNumber = accountDetails.getAccountNumber();
         String startDate =  getTransactionRequest.getStartDate();
         String endDate =  getTransactionRequest.getEndDate();
@@ -185,8 +186,10 @@ public class TransactionController {
         } else { // get list of transactions
             List<TransactionDetails> transactions = null;
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+                log.info(" getting transactions from {} to {}", startDate, endDate);
                 transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
             } else {
+                log.info(" getting transactions for user " );
                 transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber);
             }
 

@@ -32,6 +32,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -545,7 +546,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Transactional
     @Override
-    public Transaction getSingleTransaction(String customerId, String accountNumber, String transactionId) throws Exception {
+    public TransactionDetails getSingleTransaction(String customerId, String accountNumber, String transactionId) throws Exception {
         log.info("Received request to get single transaction for user with id {} and account {}",
                 customerId, accountNumber);
 
@@ -553,10 +554,15 @@ public class TransactionServiceImpl implements TransactionService {
             throw new Exception("Access Denied!");
         };
 
-        return transactionRepository.findByTransactionId(UUID.fromString(transactionId));
+        Optional<Transaction> optionalTransaction =  transactionRepository.findByTransactionId(UUID.fromString(transactionId));
+        if (optionalTransaction.isPresent()) {
+            Transaction transaction = optionalTransaction.get();
+            return mapper.getTransactionDetails(transaction);
+        }
+        return null;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public List<TransactionDetails> getTransactionsForCustomer(String customerId, String accountNumber) throws Exception {
         log.info("Received request to get all transactions for user::::");
@@ -572,7 +578,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     @Override
     public List<TransactionDetails> getTransactionsForCustomer(String customerId, String accountNumber, String startDate, String endDate) throws Exception {
         log.info("Received request to get transactions for user from {} to {}:::", startDate, endDate);
@@ -596,10 +602,11 @@ public class TransactionServiceImpl implements TransactionService {
     public ResponseEntity<?> generateReceiptPdf(String transactionId) {
         log.info("Received request to generate transaction receipt for user");
 
-        Transaction transaction = transactionRepository.findByTransactionId(UUID.fromString(transactionId));
-        if (transaction == null) {
+        Optional<Transaction> optionalTransaction =  transactionRepository.findByTransactionId(UUID.fromString(transactionId));
+        if (optionalTransaction.isEmpty()) {
             return ResponseEntity.badRequest().body(new AppResponse<>(AccountResponses.FAILED.getCode(), AccountResponses.FAILED.getMessage(), null) );
-        };
+        }
+        Transaction transaction = optionalTransaction.get();
 
         // Check if the logged in customer the one making the request and is the owner of the account
         UUID customerId = transaction.getInitiator();
