@@ -8,6 +8,6 @@ import org.springframework.http.ResponseEntity;
 public interface AccountService {
     AppResponse<?> getAccount(String accountId);
     AppResponse<?> getAccounts(GetAccountsRequest request);
-    ResponseEntity<?> generateAccountStatement(String customerId, String accountNumber, String startDate, String endDate);
+    ResponseEntity<?> generateAccountStatement(String customerId, String accountNumber, String startDate, String endDate) throws Exception;
     AppResponse<?> deleteAccount(DeleteAccountRequest deleteAccountRequest);
 }

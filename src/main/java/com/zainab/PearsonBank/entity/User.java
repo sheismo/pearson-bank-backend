@@ -78,6 +78,7 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JsonManagedReference
+    @Builder.Default
     private List<Account> accounts = new ArrayList<>();
 
     public void addAccount(Account account) {

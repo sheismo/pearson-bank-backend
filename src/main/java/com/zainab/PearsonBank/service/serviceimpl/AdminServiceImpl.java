@@ -166,7 +166,7 @@ public class AdminServiceImpl implements AdminService {
             Optional<Transaction> t = transactionRepository.findById(UUID.fromString(transactionId));
             if (t.isPresent()) {
                 Transaction txn = t.get();
-                String amt = txn.getAmount();
+                BigDecimal amt = txn.getAmount();
                 String beneficiaryAcc = txn.getCrAccountNumber();
                 String senderAcc = txn.getDrAccountNumber();
 
@@ -183,7 +183,7 @@ public class AdminServiceImpl implements AdminService {
         }
     }
 
-    private void reverseTxn(String beneficiaryAccNo, String senderAccNo, String amount) {
+    private void reverseTxn(String beneficiaryAccNo, String senderAccNo, BigDecimal amount) {
         try {
             // get sender and beneficiary accounts
             Account senderAcc = accountRepository.findByAccountNumber(senderAccNo);
@@ -195,16 +195,16 @@ public class AdminServiceImpl implements AdminService {
                     .orElseThrow(() -> new EntityNotFoundException("User not found!"));
 
             // credit sender and debit beneficiary
-            BigDecimal newSenderBalance = senderAcc.getAccountBalance().add(new BigDecimal(amount));
-            BigDecimal newSenderTotalBalance = sender.getTotalBalance().add(new BigDecimal(amount));
+            BigDecimal newSenderBalance = senderAcc.getAccountBalance().add(amount);
+            BigDecimal newSenderTotalBalance = sender.getTotalBalance().add(amount);
 
             senderAcc.setAccountBalance(newSenderBalance);
             sender.setTotalBalance(newSenderTotalBalance);
             accountRepository.save(senderAcc);
             userRepository.save(sender);
 
-            BigDecimal newBeneficiaryBalance = beneficiaryAcc.getAccountBalance().subtract(new BigDecimal(amount));
-            BigDecimal newBeneficiaryTotalBalance = beneficiary.getTotalBalance().subtract(new BigDecimal(amount));
+            BigDecimal newBeneficiaryBalance = beneficiaryAcc.getAccountBalance().subtract(amount);
+            BigDecimal newBeneficiaryTotalBalance = beneficiary.getTotalBalance().subtract(amount);
 
             beneficiaryAcc.setAccountBalance(newBeneficiaryBalance);
             beneficiary.setTotalBalance(newBeneficiaryTotalBalance);

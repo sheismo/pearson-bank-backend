@@ -6,7 +6,9 @@ import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.zainab.PearsonBank.dto.CustomerDetails;
+import com.zainab.PearsonBank.dto.TransactionDetails;
 import com.zainab.PearsonBank.entity.Transaction;
+import com.zainab.PearsonBank.types.TransactionType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -49,7 +51,7 @@ public class PdfGenerator {
     Font smallFont = new Font(Font.FontFamily.HELVETICA, 9, Font.NORMAL, lightGray);
 
 
-    public byte[] generateStatement(List<Transaction> transactions, String accountNumber, CustomerDetails customer, String startDate, String endDate) {
+    public byte[] generateStatement(List<TransactionDetails> transactions, String accountNumber, CustomerDetails customer, String startDate, String endDate) {
         try {
             Document document = new Document(PageSize.A4, 40, 40, 40, 40); // Add margins
 
@@ -143,11 +145,11 @@ public class PdfGenerator {
 
             // Table content with alternating row colors
             int rowIndex = 0;
-            for (Transaction t : transactions) {
+            for (TransactionDetails t : transactions) {
                 BaseColor rowColor = (rowIndex % 2 == 0) ? BaseColor.WHITE : lightGray;
 
                 // Date
-                LocalDateTime createdDate = t.getCreatedDate();
+                LocalDateTime createdDate = t.getDate();
                 String formattedDate = createdDate.format(DateTimeFormatter.ofPattern("dd MMM yyyy • HH:mm"));
                 PdfPCell dateCell = new PdfPCell(new Phrase(formattedDate, tableContentFont));
                 dateCell.setBackgroundColor(rowColor);
@@ -158,7 +160,7 @@ public class PdfGenerator {
 
                 // Type
                 PdfPCell typeCell = new PdfPCell(new Phrase(
-                        getTransactionTypeString(t.getType().ordinal()),
+                        getTransactionTypeString(TransactionType.valueOf(t.getType()).ordinal()),
                         tableContentFont
                 ));
                 typeCell.setBackgroundColor(rowColor);
@@ -168,7 +170,7 @@ public class PdfGenerator {
                 transactionsTable.addCell(typeCell);
 
                 // Amount with color coding
-                String amount = t.getAmount();
+                String amount = String.valueOf(t.getAmount());
                 BaseColor amountColor = t.getType().toString().contains("DEPOSIT") ?
                         new BaseColor(0, 128, 0) : // Green for credits
                         new BaseColor(220, 53, 69); // Red for debits
@@ -184,7 +186,7 @@ public class PdfGenerator {
                 transactionsTable.addCell(amountCell);
 
                 // Sender
-                String sender = t.getDrAccountName().equals("system") ? t.getCrAccountName() : t.getDrAccountName();
+                String sender = t.getSenderName().equals("system") ? t.getBeneficiaryName() : t.getSenderName();
                 PdfPCell senderCell = new PdfPCell(new Phrase(sender, tableContentFont));
                 senderCell.setBackgroundColor(rowColor);
                 senderCell.setBorder(Rectangle.BOTTOM);
@@ -193,7 +195,7 @@ public class PdfGenerator {
                 transactionsTable.addCell(senderCell);
 
                 // Beneficiary
-                String beneficiary = t.getCrAccountName().equals("system") ? t.getDrAccountName() : t.getCrAccountName();
+                String beneficiary = t.getBeneficiaryName().equals("system") ? t.getSenderName() : t.getSenderName();
                 PdfPCell beneficiaryCell = new PdfPCell(new Phrase(beneficiary, tableContentFont));
                 beneficiaryCell.setBackgroundColor(rowColor);
                 beneficiaryCell.setBorder(Rectangle.BOTTOM);
@@ -289,7 +291,7 @@ public class PdfGenerator {
             body.setSpacingBefore(10);
             body.setWidths(new float[]{40, 60});
 
-            addRow(body, "Amount:", txn.getAmount(), true);
+            addRow(body, "Amount:", String.valueOf(txn.getAmount()), true);
             addRow(body, "Sender:", txn.getDrAccountName(), false);
             addRow(body, "Beneficiary:", txn.getCrAccountName(), false);
             addRow(body, "Account No:", txn.getCrAccountNumber(), false);

@@ -64,6 +64,7 @@ public class MapperClass {
         dto.setType(String.valueOf(transaction.getType()));
         dto.setNarration(transaction.getNarration());
         dto.setReferenceNo(transaction.getReferenceNo());
+        dto.setStatus(transaction.getTransactionStatus().name());
 
         return dto;
     }

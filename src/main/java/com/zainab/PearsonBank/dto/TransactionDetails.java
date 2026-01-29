@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -30,7 +31,7 @@ public class TransactionDetails {
     private String beneficiaryAccount;
 
     @Schema(name = "Transaction Amount")
-    private String amount;
+    private BigDecimal amount;
 
     @Schema(name = "Transaction Type")
     private String type;
@@ -46,4 +47,7 @@ public class TransactionDetails {
 
     @Schema(name = "Transaction Date")
     private LocalDateTime date;
+
+    @Schema(name = "Transaction Status")
+    private String status;
 }

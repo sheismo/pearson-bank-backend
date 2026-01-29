@@ -2,7 +2,6 @@ package com.zainab.PearsonBank.service.serviceimpl;
 
 import com.zainab.PearsonBank.dto.*;
 import com.zainab.PearsonBank.entity.Account;
-import com.zainab.PearsonBank.entity.Transaction;
 import com.zainab.PearsonBank.event.EmailEvent;
 import com.zainab.PearsonBank.repository.AccountRepository;
 import com.zainab.PearsonBank.repository.UserRepository;
@@ -15,7 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -129,7 +131,7 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public ResponseEntity<?> generateAccountStatement(String customerId, String accountNumber, String startDate, String endDate) {
+    public ResponseEntity<?> generateAccountStatement(String customerId, String accountNumber, String startDate, String endDate) throws Exception {
         log.info("Received request to generate account statement for user with id {} and account {}",
                 customerId, accountNumber);
 
@@ -153,7 +155,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         CustomerDetails customer = accountHelper.fetchCustomerDetails(customerId);
-        List<Transaction> transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
+        List<TransactionDetails> transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
 
         if (transactions == null || transactions.isEmpty()) {
             log.error("Transactions not found for user within this date range:::");

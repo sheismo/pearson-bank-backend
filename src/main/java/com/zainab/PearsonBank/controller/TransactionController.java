@@ -111,7 +111,7 @@ public class TransactionController {
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/get-transactions")
-    public ResponseEntity<AppResponse<?>> getTransactions(@RequestBody GetTransactionRequest getTransactionRequest, HttpServletRequest request){
+    public ResponseEntity<AppResponse<?>> getTransactions(@RequestBody GetTransactionRequest getTransactionRequest, HttpServletRequest request) throws Exception {
         log.info("Incoming request to get transaction for user from ip {}", request.getRemoteAddr());
 
         String customerId = getTransactionRequest.getCustomerId();
@@ -183,7 +183,7 @@ public class TransactionController {
                 return ResponseEntity.ok(response);
             }
         } else { // get list of transactions
-            List<Transaction> transactions = null;
+            List<TransactionDetails> transactions = null;
             if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
                 transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
             } else {

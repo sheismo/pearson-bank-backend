@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class GetTransactionRequest {
+public class  GetTransactionRequest {
     @Schema(name = "User Id")
     private String customerId;
 

@@ -27,6 +27,8 @@ public class UserSession {
     private String refreshToken;
 
     private LocalDateTime lastActivity;
+
+    @Builder.Default
     private boolean revoked = false;
 
     private LocalDateTime createdAt;

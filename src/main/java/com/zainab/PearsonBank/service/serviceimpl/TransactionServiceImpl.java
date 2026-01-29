@@ -33,6 +33,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -44,6 +45,9 @@ public class TransactionServiceImpl implements TransactionService {
     private final EmailService emailService;
     private final AccountHelper accountHelper;
     private final PdfGenerator pdfGenerator;
+
+    @Autowired
+    MapperClass mapper;
 
     @Autowired
     private ApplicationEventPublisher eventPublisher;
@@ -106,7 +110,7 @@ public class TransactionServiceImpl implements TransactionService {
         log.info("Crediting account - acc number: {}, amount: {}", creditRequest.getAccountNumber(), crAmount);
         // proceed to credit
         Transaction txn = new Transaction();
-        txn.setAmount(String.valueOf(crAmount));
+        txn.setAmount(crAmount);
         txn.setCrAccountName(accountHelper.getCustomerFullName(user));
         txn.setCrAccountNumber(crAccountNo);
         txn.setDrAccountName("system");
@@ -261,7 +265,7 @@ public class TransactionServiceImpl implements TransactionService {
         // proceed to debit
         log.info("Debiting account - acc number: {}, amount: {}", drAccountNo, drAmount);
         Transaction txn = new Transaction();
-        txn.setAmount(String.valueOf(drAmount));
+        txn.setAmount(drAmount);
         txn.setDrAccountName(accountHelper.getCustomerFullName(user));
         txn.setDrAccountNumber(drAccountNo);
         txn.setCrAccountName("system");
@@ -434,7 +438,7 @@ public class TransactionServiceImpl implements TransactionService {
 
         // proceed to transfer funds
         Transaction txn = new Transaction();
-        txn.setAmount(String.valueOf(transferAmount));
+        txn.setAmount(transferAmount);
         txn.setCrAccountName(accountHelper.getCustomerFullName(beneficiary.getId()));
         txn.setCrAccountNumber(crAccountNo);
         txn.setDrAccountName(accountHelper.getCustomerFullName(sender.getId()));
@@ -539,37 +543,55 @@ public class TransactionServiceImpl implements TransactionService {
         }
     }
 
+    @Transactional
     @Override
-    public Transaction getSingleTransaction(String customerId, String accountNumber, String transactionId) {
+    public Transaction getSingleTransaction(String customerId, String accountNumber, String transactionId) throws Exception {
         log.info("Received request to get single transaction for user with id {} and account {}",
                 customerId, accountNumber);
 
-        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) {
+            throw new Exception("Access Denied!");
+        };
 
         return transactionRepository.findByTransactionId(UUID.fromString(transactionId));
     }
 
+    @Transactional
     @Override
-    public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber) {
+    public List<TransactionDetails> getTransactionsForCustomer(String customerId, String accountNumber) throws Exception {
         log.info("Received request to get all transactions for user::::");
 
-        if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) {
+            throw new Exception("Access Denied!");
+        };
 
-        return transactionRepository.findAllByInitiator(UUID.fromString(customerId));
+        return transactionRepository
+                .findAllByInitiator(UUID.fromString(customerId))
+                .stream()
+                .map(mapper::getTransactionDetails)
+                .collect(Collectors.toList());
     }
 
+    @Transactional
     @Override
-    public List<Transaction> getTransactionsForCustomer(String customerId, String accountNumber, String startDate, String endDate) {
+    public List<TransactionDetails> getTransactionsForCustomer(String customerId, String accountNumber, String startDate, String endDate) throws Exception {
         log.info("Received request to get transactions for user from {} to {}:::", startDate, endDate);
 
         LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
         LocalDateTime end = LocalDate.parse(endDate).atTime(LocalTime.MAX);
 
-        if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) return null;
+        if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) {
+            throw new Exception("Access Denied!");
+        }
 
-        return transactionRepository.findAllByInitiatorAndCreatedDateBetween(UUID.fromString(customerId), start, end);
+        return transactionRepository
+                .findAllByInitiatorAndCreatedDateBetween(UUID.fromString(customerId), start, end)
+                .stream()
+                .map(mapper::getTransactionDetails)
+                .collect(Collectors.toList());
     }
 
+    @Transactional
     @Override
     public ResponseEntity<?> generateReceiptPdf(String transactionId) {
         log.info("Received request to generate transaction receipt for user");

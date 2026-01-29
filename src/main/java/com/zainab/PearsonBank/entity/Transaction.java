@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,7 +23,7 @@ public class Transaction {
     @Column(name = "transaction_id")
     private UUID transactionId;
 
-    private String amount;
+    private BigDecimal amount;
     private String drAccountName;
     private String drAccountNumber;
     private String crAccountName;
