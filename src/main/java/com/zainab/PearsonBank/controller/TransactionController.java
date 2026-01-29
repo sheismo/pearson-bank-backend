@@ -1,7 +1,6 @@
 package com.zainab.PearsonBank.controller;
 
 import com.zainab.PearsonBank.dto.*;
-import com.zainab.PearsonBank.entity.Transaction;
 import com.zainab.PearsonBank.service.TransactionService;
 import com.zainab.PearsonBank.utils.AccountHelper;
 import com.zainab.PearsonBank.utils.AccountResponses;
@@ -119,7 +118,7 @@ public class TransactionController {
         String transactionId = getTransactionRequest.getTransactionId();
 
         AccountDetails accountDetails = accountHelper.fetchAccountDetails(getTransactionRequest.getAccountId());
-        log.info(" fetched account details {} " accountDetails.getAccountName());
+        log.info("fetched account details {} ", accountDetails.getAccountName());
         String accountNumber = accountDetails.getAccountNumber();
         String startDate =  getTransactionRequest.getStartDate();
         String endDate =  getTransactionRequest.getEndDate();
@@ -172,7 +171,7 @@ public class TransactionController {
         getTransactionRequest.setSenderIp(request.getRemoteAddr());
 
         if (transactionId != null && !transactionId.isEmpty()) { // get single transaction
-            Transaction transaction = transactionService.getSingleTransaction(customerId, accountNumber, transactionId);
+            TransactionDetails transaction = transactionService.getSingleTransaction(customerId, accountNumber, transactionId);
 
             if (transaction != null) {
                 AppResponse<?> response = AppResponse.builder()
