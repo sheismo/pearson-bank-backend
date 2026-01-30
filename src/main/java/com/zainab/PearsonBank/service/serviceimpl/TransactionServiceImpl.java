@@ -108,6 +108,17 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
         }
 
+        // check if user profile is enabled
+        boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(customerId));
+        if (!customerIsLocked){
+            log.error("Invalid Request, User Profile is disabled:::::");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage("Your Profile is currently disabled, please contact admin!")
+                    .data(null)
+                    .build();
+        }
+
         log.info("Crediting account - acc number: {}, amount: {}", creditRequest.getAccountNumber(), crAmount);
         // proceed to credit
         Transaction txn = new Transaction();
@@ -225,7 +236,6 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
         }
 
-
         // check if account exists
         boolean accountExists = accountHelper.checkIfAccountExists(drAccountNo);
         if (!accountExists) {
@@ -244,6 +254,17 @@ public class TransactionServiceImpl implements TransactionService {
             return AppResponse.builder()
                     .responseCode(AccountResponses.ACCOUNT_INACTIVE.getCode())
                     .responseMessage(AccountResponses.ACCOUNT_INACTIVE.getMessage())
+                    .data(null)
+                    .build();
+        }
+
+        // check if user profile is enabled
+        boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(customerId));
+        if (!customerIsLocked){
+            log.error("");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage("Your Profile is currently disabled, please contact admin!")
                     .data(null)
                     .build();
         }
@@ -413,6 +434,28 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
         }
 
+        // check if sender profile is enabled
+        boolean drCustomerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(senderAcc.getId()));
+        if (!drCustomerIsLocked){
+            log.error("Invalid Request, Sender Profile is disabled:::::::");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage("Your Profile is currently disabled, please contact admin!")
+                    .data(null)
+                    .build();
+        }
+
+        // check if beneficiary profile is enabled
+        boolean crCustomerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(beneficiaryAcc.getId()));
+        if (!crCustomerIsLocked){
+            log.error("Invalid Request, Beneficiary Profile is disabled:::::::");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage("Cannot transfer funds to a disabled account!")
+                    .data(null)
+                    .build();
+        }
+
         // check for insufficient funds
         log.info("sender acc balance is:: {}", senderAcc.getAccountBalance() );
         boolean sufficientFunds = AccountUtils.hasSufficientBalance(senderAcc.getAccountBalance(), transferAmount);
@@ -544,7 +587,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
     }
 
-    @Transactional
+    @Transactional (readOnly = true)
     @Override
     public TransactionDetails getSingleTransaction(String customerId, String accountNumber, String transactionId) throws Exception {
         log.info("Received request to get single transaction for user with id {} and account {}",

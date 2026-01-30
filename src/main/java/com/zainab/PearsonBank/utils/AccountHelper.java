@@ -6,6 +6,7 @@ import com.zainab.PearsonBank.entity.Account;
 import com.zainab.PearsonBank.entity.User;
 import com.zainab.PearsonBank.repository.AccountRepository;
 import com.zainab.PearsonBank.repository.UserRepository;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -95,6 +96,7 @@ public class AccountHelper {
         return null;
     }
 
+    @Transactional(readOnly = true)
     public AccountDetails fetchAccountDetails(String accountId) {
         Account account = accountRepository.findById(UUID.fromString(accountId))
                 .orElseThrow(RuntimeException::new);
@@ -114,6 +116,7 @@ public class AccountHelper {
                 .build();
     }
 
+    @Transactional (readOnly = true)
     public CustomerDetails fetchCustomerDetails(String customerId) {
         User user =  userRepository.findById(UUID.fromString(customerId))
                 .orElseThrow(RuntimeException::new);
