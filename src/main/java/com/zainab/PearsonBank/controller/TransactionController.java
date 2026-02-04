@@ -106,11 +106,97 @@ public class TransactionController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get Transactions ", description = "API endpoint to get transactions for customer")
+    @Operation(summary = "Get Customer Transactions ", description = "API endpoint to get transactions for customer")
     @ApiResponse(responseCode = "200", description = "Request processed successfully!")
     @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/get-transactions")
-    public ResponseEntity<AppResponse<?>> getTransactions(@RequestBody GetTransactionRequest getTransactionRequest, HttpServletRequest request) throws Exception {
+    public ResponseEntity<AppResponse<?>> getTransactions(@RequestBody GetTransactionsRequest getTransactionsRequest, HttpServletRequest request) throws Exception {
+        log.info("Incoming request to get transactions for user from ip {}", request.getRemoteAddr());
+
+        String customerId = getTransactionsRequest.getCustomerId();
+        String accountId  = getTransactionsRequest.getAccountId();
+
+        AccountDetails accountDetails = accountHelper.fetchAccountDetails(getTransactionsRequest.getAccountId());
+        log.info("Fetched account details {} ", accountDetails.getAccountName());
+        String accountNumber = accountDetails.getAccountNumber();
+        String startDate =  getTransactionsRequest.getStartDate();
+        String endDate =  getTransactionsRequest.getEndDate();
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(UUID.fromString(customerId)) &&
+                loggedInCustomerId.equals(accountDetails.getOwnerId());
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request:::");
+            AppResponse<?> response = AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+
+        // validate request
+        if (!AccountUtils.validateGetTransactionsRequest(getTransactionsRequest)) {
+            log.error("Invalid Request::::::::::");
+            AppResponse<?> response = AppResponse.builder()
+                    .responseCode(AccountResponses.INVALID_REQUEST.getCode())
+                    .responseMessage(AccountResponses.INVALID_REQUEST.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (!accountHelper.checkIfAccountExistsById(accountId)) {
+            log.error("Account does not exist:::::::::");
+            AppResponse<?> response = AppResponse.builder()
+                    .responseCode(AccountResponses.ACCOUNT_NOT_FOUND.getCode())
+                    .responseMessage(AccountResponses.ACCOUNT_NOT_FOUND.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (!accountHelper.checkIfCustomerExistsById(customerId)) {
+            log.error("Account does not exist::::::::");
+            AppResponse<?> response = AppResponse.builder()
+                    .responseCode(AccountResponses.CUSTOMER_NOT_FOUND.getCode())
+                    .responseMessage(AccountResponses.CUSTOMER_NOT_FOUND.getMessage())
+                    .data(null)
+                    .build();
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        getTransactionsRequest.setSenderIp(request.getRemoteAddr());
+
+        // get list of transactions
+        List<TransactionDetails> transactions = null;
+        if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
+            log.info("getting transactions from {} to {}::", startDate, endDate);
+            transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
+        } else {
+            log.info("getting transactions for user::" );
+            transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber);
+        }
+
+        if (transactions != null && !transactions.isEmpty()) {
+            AppResponse<?> response = AppResponse.builder()
+                    .responseCode(AccountResponses.SUCCESS.getCode())
+                    .responseMessage(AccountResponses.SUCCESS.getMessage())
+                    .data(transactions)
+                    .build();
+
+            return ResponseEntity.ok(response);
+        }
+
+        return ResponseEntity.ok().body(new AppResponse<>(AccountResponses.FAILED.getCode(), "No Transactions Found", null));
+    }
+
+    @Operation(summary = "Get Transaction ", description = "API endpoint to get single transaction for customer")
+    @ApiResponse(responseCode = "200", description = "Request processed successfully!")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/get-transaction")
+    public ResponseEntity<AppResponse<?>> getTransaction(@RequestBody GetTransactionRequest getTransactionRequest, HttpServletRequest request) throws Exception {
         log.info("Incoming request to get transaction for user from ip {}", request.getRemoteAddr());
 
         String customerId = getTransactionRequest.getCustomerId();
@@ -120,8 +206,6 @@ public class TransactionController {
         AccountDetails accountDetails = accountHelper.fetchAccountDetails(getTransactionRequest.getAccountId());
         log.info("fetched account details {} ", accountDetails.getAccountName());
         String accountNumber = accountDetails.getAccountNumber();
-        String startDate =  getTransactionRequest.getStartDate();
-        String endDate =  getTransactionRequest.getEndDate();
 
         // Check if the logged in customer the one making the request and is the owner of the account
         UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
@@ -170,7 +254,8 @@ public class TransactionController {
 
         getTransactionRequest.setSenderIp(request.getRemoteAddr());
 
-        if (transactionId != null && !transactionId.isEmpty()) { // get single transaction
+        // get single transaction
+        if (transactionId != null && !transactionId.isEmpty()) {
             TransactionDetails transaction = transactionService.getSingleTransaction(customerId, accountNumber, transactionId);
 
             if (transaction != null) {
@@ -178,25 +263,6 @@ public class TransactionController {
                         .responseCode(AccountResponses.SUCCESS.getCode())
                         .responseMessage(AccountResponses.SUCCESS.getMessage())
                         .data(transaction)
-                        .build();
-
-                return ResponseEntity.ok(response);
-            }
-        } else { // get list of transactions
-            List<TransactionDetails> transactions = null;
-            if (startDate != null && !startDate.isEmpty() && endDate != null && !endDate.isEmpty()) {
-                log.info(" getting transactions from {} to {}", startDate, endDate);
-                transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber, startDate, endDate);
-            } else {
-                log.info(" getting transactions for user " );
-                transactions = transactionService.getTransactionsForCustomer(customerId, accountNumber);
-            }
-
-            if (transactions != null && !transactions.isEmpty()) {
-                AppResponse<?> response = AppResponse.builder()
-                        .responseCode(AccountResponses.SUCCESS.getCode())
-                        .responseMessage(AccountResponses.SUCCESS.getMessage())
-                        .data(transactions)
                         .build();
 
                 return ResponseEntity.ok(response);

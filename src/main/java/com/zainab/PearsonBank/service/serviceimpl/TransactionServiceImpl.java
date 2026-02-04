@@ -593,7 +593,7 @@ public class TransactionServiceImpl implements TransactionService {
         log.info("Received request to get single transaction for user with id {} and account {}",
                 customerId, accountNumber);
 
-        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) {
+        if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) {
             throw new Exception("Access Denied!");
         };
 
@@ -610,7 +610,7 @@ public class TransactionServiceImpl implements TransactionService {
     public List<TransactionDetails> getTransactionsForCustomer(String customerId, String accountNumber) throws Exception {
         log.info("Received request to get all transactions for user::::");
 
-        if (accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) {
+        if (!accountHelper.checkIfAccountBelongsToCustomer(customerId, accountNumber)) {
             throw new Exception("Access Denied!");
         };
 

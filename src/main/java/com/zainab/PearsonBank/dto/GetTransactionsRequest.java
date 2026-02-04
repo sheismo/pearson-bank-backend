@@ -10,15 +10,18 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class  GetTransactionRequest {
+public class GetTransactionsRequest {
     @Schema(name = "User Id")
     private String customerId;
 
-    @Schema(name = "Transaction Id (Pass this if it is a single transaction to be fetched)")
-    private String transactionId;
-
     @Schema(name = "Account Id")
     private String accountId;
+
+    @Schema(name = "Start Date If Range is Needed")
+    private String startDate;
+
+    @Schema(name = "End Date If Range is Needed")
+    private String endDate;
 
     @Schema(name = "Channel")
     private String channel;
