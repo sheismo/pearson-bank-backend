@@ -206,7 +206,7 @@ public class CustomerServiceImpl implements CustomerService  {
         return AppResponse.builder()
                 .responseCode(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getCode())
                 .responseMessage(AccountResponses.ACCOUNT_CREATION_SUCCESSFUL.getMessage())
-                .data(mapperClass.getCustomerDetails(savedUser))
+                .data(mapperClass.getCustomerDetails(savedUser, accountNumber))
                 .build();
     }
 
