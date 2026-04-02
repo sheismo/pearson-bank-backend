@@ -2,7 +2,7 @@
 
 Pearson Bank is a backend **Core Banking REST API** built with **Java and Spring Boot**, implementing secure authentication, account management, and transaction processing.
 
-This project demonstrates backend development concepts such as JWT security, database transactions, clean architecture, and cloud deployment.
+This project demonstrates backend development concepts such as JWT security, authentication and authorization, database transactions, CRUD, exception handling, API design, clean architecture, and cloud deployment.
 
 ---
 
