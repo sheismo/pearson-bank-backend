@@ -59,14 +59,16 @@ Detailed API documentation is available in this repository:
 📄 PearsonBank_API_Documentation.docx
 ________________________________________
 ⚙️ Running Locally
-git clone https://github.com/your-username/pearson-bank-backend.git
-cd pearson-bank-backend
-mvn spring-boot:run
+•	git clone https://github.com/your-username/pearson-bank-backend.git
+•	cd pearson-bank-backend
+•	mvn spring-boot:run
 ________________________________________
 ☁️ Deployment
 •	Backend deployed on Render
 •	Environment variables used for secrets
 •	Production-ready configuration
+•	Database: Supabase PostgreSQL
+•	APIs are always live for testing via Swagger at /swagger-ui.html or via postman
 ________________________________________
 👩🏽‍💻 Author
 Zainab Ajumobi
