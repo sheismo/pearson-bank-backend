@@ -69,10 +69,16 @@ public class TransactionServiceImpl implements TransactionService {
         String narration = creditRequest.getNarration() != null ? defaultNarration + creditRequest.getChannel() : defaultNarration;
         String ip = creditRequest.getSenderIp();
 
+        log.info("acc no is {}, amount is {}, id is {}, narration is {}, channel is {}",
+                crAccountNo, crAmount, customerId, narration, channel);
+
         Account account = accountRepository.findByAccountNumber(crAccountNo);
+        log.info("Account no is: {}", account.toString());
+
         User user = userRepository.findById(customerId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
-        log.info("Account no is: {}, User name is: {}", account.getAccountNumber(), accountHelper.getCustomerFullName(user));
+        log.info("User is {}", user.toString());
+        log.info("User name is: {}", accountHelper.getCustomerFullName(user));
 
         // Check if the logged in customer the one making the request and is the owner of the account
         UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
