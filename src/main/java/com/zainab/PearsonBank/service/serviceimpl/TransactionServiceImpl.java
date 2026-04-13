@@ -72,26 +72,6 @@ public class TransactionServiceImpl implements TransactionService {
         log.info("acc no is {}, amount is {}, id is {}, narration is {}, channel is {}",
                 crAccountNo, crAmount, customerId, narration, channel);
 
-        Account account = accountRepository.findByAccountNumber(crAccountNo);
-        log.info("Account no is: {}", account.toString());
-
-        User user = userRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
-        log.info("User is {}", user.toString());
-        log.info("User name is: {}", accountHelper.getCustomerFullName(user));
-
-        // Check if the logged in customer the one making the request and is the owner of the account
-        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
-        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(account.getUser().getId());
-        if (!isValidRequest) {
-            log.error("Invalid Request - Customer is not authorized to make this request!!!!!");
-            return AppResponse.builder()
-                    .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed: You are not authorized to make this request!")
-                    .data(null)
-                    .build();
-        }
-
         // check if account number exists
         boolean accountExists = accountHelper.checkIfAccountExists(crAccountNo);
         if (!accountExists) {
@@ -102,6 +82,7 @@ public class TransactionServiceImpl implements TransactionService {
                     .data(null)
                     .build();
         }
+        log.info("Account exists");
 
         // check if account is active
         boolean accountIsActive = accountHelper.checkIfAccountIsActive(crAccountNo);
@@ -114,6 +95,27 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
         }
 
+        Account account = accountRepository.findByAccountNumber(crAccountNo);
+        log.info("Account no is: {}", account.toString());
+
+        User user = userRepository.findById(customerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
+        log.info("User is {}", user.toString());
+        log.info("User's full name is: {}", accountHelper.getCustomerFullName(user));
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(account.getUser().getId());
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!!!!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
+        log.info("Request is valid:::");
+
         // check if user profile is enabled
         boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(customerId));
         if (!customerIsLocked){
@@ -124,8 +126,9 @@ public class TransactionServiceImpl implements TransactionService {
                     .data(null)
                     .build();
         }
+        log.info("User profile is enabled:::");
 
-        log.info("Crediting account - acc number: {}, amount: {}", creditRequest.getAccountNumber(), crAmount);
+        log.info("About to process credit to account - acc number: {}, amount: {}", creditRequest.getAccountNumber(), crAmount);
         // proceed to credit
         Transaction txn = new Transaction();
         txn.setAmount(crAmount);
@@ -156,10 +159,12 @@ public class TransactionServiceImpl implements TransactionService {
             BigDecimal newTotalBalance = user.getTotalBalance().add(crAmount);
             user.setTotalBalance(newTotalBalance);
             userRepository.save(user);
+            log.info("user is now {}", user.toString());
 
             savedTxn.setReferenceNo(txnReference);
             savedTxn.setTransactionStatus(TransactionStatus.SUCCESSFUL);
             transactionRepository.save(savedTxn);
+            log.info("txn is now {}", savedTxn.toString());
 
             // send credit email alert
             String formattedDate = transactionDate.format(DateTimeFormatter.ofPattern("dd-MMM-yyyy HH:mm:ss"));

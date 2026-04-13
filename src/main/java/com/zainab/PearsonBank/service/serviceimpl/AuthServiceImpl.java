@@ -116,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
             user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(24));
             userRepository.save(user);
 
-            String resetUrl = appBaseUrl + "/reset-password?token=" + resetToken;
+            String resetUrl = appBaseUrl + "/validate-reset-token?token=" + resetToken; // this should be frontend base url
 
             EmailDetails emailDetails = new EmailDetails();
             emailDetails.setSubject(EmailUtils.PASSWORD_RESET_EMAIL_SUBJECT.getTemplate());
@@ -140,6 +140,9 @@ public class AuthServiceImpl implements AuthService {
                 throw new RuntimeException("Reset token has expired");
             }
 
+            user.setResetPasswordTokenVerified(true);
+            userRepository.save(user);
+
             return new TokenValidationResponse("00", "Token Is Valid", true, user.getEmail());
         } catch (Exception e) {
             return new TokenValidationResponse("40", e.getMessage(), false, null);
@@ -155,6 +158,10 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Reset Token has expired!");
         }
 
+        if (!user.isResetPasswordTokenVerified()) {
+            throw new RuntimeException("Reset Password Token Not Validated!");
+        }
+
         String hashedPassword = passwordEncoder.encode(resetPasswordRequest.getNewPassword());
         if (user.getAppPassword() != null && user.getAppPassword().equals(hashedPassword)) {
             throw new RuntimeException("You cannot use old password!");
@@ -163,6 +170,7 @@ public class AuthServiceImpl implements AuthService {
         user.setAppPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
         user.setResetPasswordToken(null);
         user.setResetPasswordTokenExpiry(null);
+        user.setResetPasswordTokenVerified(false);
         userRepository.save(user);
     }
 

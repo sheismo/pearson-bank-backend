@@ -64,6 +64,7 @@ public class User {
 
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
+    private boolean resetPasswordTokenVerified;
 
     private String refreshToken;
     private LocalDateTime refreshTokenExpiry;
