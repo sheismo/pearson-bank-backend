@@ -82,7 +82,6 @@ public class TransactionServiceImpl implements TransactionService {
                     .data(null)
                     .build();
         }
-        log.info("Account exists");
 
         // check if account is active
         boolean accountIsActive = accountHelper.checkIfAccountIsActive(crAccountNo);
@@ -113,7 +112,6 @@ public class TransactionServiceImpl implements TransactionService {
                     .data(null)
                     .build();
         }
-        log.info("Request is valid:::");
 
         // check if user profile is enabled
         boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(user.getEmail());
@@ -125,7 +123,6 @@ public class TransactionServiceImpl implements TransactionService {
                     .data(null)
                     .build();
         }
-        log.info("User profile is enabled:::");
 
         log.info("About to process credit to account - acc number: {}, amount: {}", creditRequest.getAccountNumber(), crAmount);
         // proceed to credit
@@ -230,22 +227,6 @@ public class TransactionServiceImpl implements TransactionService {
         String narration = debitRequest.getNarration() != null ? defaultNarration + debitRequest.getChannel() : defaultNarration;
         String ip = debitRequest.getSenderIp();
 
-        Account account = accountRepository.findByAccountNumber(drAccountNo);
-        User user = userRepository.findById(customerId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
-
-        // Check if the logged in customer the one making the request and is the owner of the account
-        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
-        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(account.getUser().getId());
-        if (!isValidRequest) {
-            log.error("Invalid Request - Customer is not authorized to make this request!!!!!!!!");
-            return AppResponse.builder()
-                    .responseCode(AccountResponses.FAILED.getCode())
-                    .responseMessage("Failed: You are not authorized to make this request!")
-                    .data(null)
-                    .build();
-        }
-
         // check if account exists
         boolean accountExists = accountHelper.checkIfAccountExists(drAccountNo);
         if (!accountExists) {
@@ -268,8 +249,28 @@ public class TransactionServiceImpl implements TransactionService {
                     .build();
         }
 
+        Account account = accountRepository.findByAccountNumber(drAccountNo);
+        log.info("The account number is {}", account.toString());
+
+        User user = userRepository.findById(customerId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
+        log.info("The user's full name is: {}", accountHelper.getCustomerFullName(user));
+
+
+        // Check if the logged in customer the one making the request and is the owner of the account
+        UUID loggedInCustomerId = AccountUtils.getLoggedInCustomerId();
+        boolean isValidRequest = loggedInCustomerId.equals(customerId) && loggedInCustomerId.equals(account.getUser().getId());
+        if (!isValidRequest) {
+            log.error("Invalid Request - Customer is not authorized to make this request!!!!!!!!");
+            return AppResponse.builder()
+                    .responseCode(AccountResponses.FAILED.getCode())
+                    .responseMessage("Failed: You are not authorized to make this request!")
+                    .data(null)
+                    .build();
+        }
+
         // check if user profile is enabled
-        boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(customerId));
+        boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(user.getEmail());
         if (!customerIsLocked){
             log.error("");
             return AppResponse.builder()
@@ -445,7 +446,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // check if sender profile is enabled
-        boolean drCustomerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(senderAcc.getId()));
+        boolean drCustomerIsLocked = accountHelper.checkIfCustomerIsLocked(sender.getEmail());
         if (!drCustomerIsLocked){
             log.error("Invalid Request, Sender Profile is disabled:::::::");
             return AppResponse.builder()
@@ -456,7 +457,7 @@ public class TransactionServiceImpl implements TransactionService {
         }
 
         // check if beneficiary profile is enabled
-        boolean crCustomerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(beneficiaryAcc.getId()));
+        boolean crCustomerIsLocked = accountHelper.checkIfCustomerIsLocked(beneficiary.getEmail());
         if (!crCustomerIsLocked){
             log.error("Invalid Request, Beneficiary Profile is disabled:::::::");
             return AppResponse.builder()
