@@ -100,7 +100,6 @@ public class TransactionServiceImpl implements TransactionService {
 
         User user = userRepository.findById(customerId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + customerId));
-        log.info("User is {}", user.toString());
         log.info("User's full name is: {}", accountHelper.getCustomerFullName(user));
 
         // Check if the logged in customer the one making the request and is the owner of the account
@@ -117,7 +116,7 @@ public class TransactionServiceImpl implements TransactionService {
         log.info("Request is valid:::");
 
         // check if user profile is enabled
-        boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(String.valueOf(customerId));
+        boolean customerIsLocked = accountHelper.checkIfCustomerIsLocked(user.getEmail());
         if (!customerIsLocked){
             log.error("Invalid Request, User Profile is disabled:::::");
             return AppResponse.builder()

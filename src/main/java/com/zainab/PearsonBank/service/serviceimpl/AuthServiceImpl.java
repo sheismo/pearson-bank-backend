@@ -116,7 +116,7 @@ public class AuthServiceImpl implements AuthService {
             user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(24));
             userRepository.save(user);
 
-            String resetUrl = appBaseUrl + "/validate-reset-token?token=" + resetToken; // this should be frontend base url
+            String resetUrl = appBaseUrl + "api/validate-reset-token?token=" + resetToken; // this should be frontend base url
 
             EmailDetails emailDetails = new EmailDetails();
             emailDetails.setSubject(EmailUtils.PASSWORD_RESET_EMAIL_SUBJECT.getTemplate());

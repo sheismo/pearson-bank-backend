@@ -164,34 +164,22 @@ public class AccountHelper {
     }
 
     public boolean checkIfCustomerIsVerified(String emailAddress) {
-        User user =  userRepository.findByEmail(emailAddress)
-                .orElseThrow(RuntimeException::new);
-
-        if (user == null) return false;
+        User user =  getUserByEmail(emailAddress);
         return user.isEmailVerified();
     }
 
     public boolean checkIfCustomerIsLocked(String emailAddress) {
-        User user =  userRepository.findByEmail(emailAddress)
-                .orElseThrow(RuntimeException::new);
-
-        if (user == null) return false;
+        User user = getUserByEmail(emailAddress);
         return user.isProfileEnabled();
     }
 
     public boolean hasSetTransactionPin(String customerId) {
-        User user =  userRepository.findById(UUID.fromString(customerId))
-                .orElseThrow(RuntimeException::new);
-
-        if (user == null) return false;
+        User user =  getUserById(customerId);
         return !(user.getTransactionPin() == null);
     }
 
     public boolean hasSetAppPassword(String customerId) {
-        User user = userRepository.findById(UUID.fromString(customerId))
-                .orElseThrow(RuntimeException::new);
-
-        if (user == null) return false;
+        User user = getUserById(customerId);
         return !user.isDefaultPassword();
     }
 
@@ -202,6 +190,16 @@ public class AccountHelper {
 
     public boolean checkIfAmountIsValid(BigDecimal amount) {
         return amount.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    private User getUserById(String id) {
+        return userRepository.findById(UUID.fromString(id))
+                .orElseThrow(() -> new RuntimeException("User id not found"));
+    }
+
+    private User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User email not found"));
     }
 
 }
